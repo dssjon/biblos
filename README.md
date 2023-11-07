@@ -2,7 +2,7 @@
 
 Biblos allows semantic search and summarization of Bible passages using state-of-the-art NLP techniques:
 
-- Vector search over the entire Bible text using [Chroma](https://github.com/chroma-core/chroma) and BAAI BGE embeddings
+- Vector search over the entire Bible text using [Chroma](https://github.com/chroma-core/chroma) and Instructor-XL embeddings
 - Summarization of search results using [Anthropic's Claude](https://www.anthropic.com/) large language model
 
 This enables powerful semantic search over biblical texts to find related passages, along with high quality summaries of the relationships between verses on a given topic.
@@ -12,14 +12,14 @@ This enables powerful semantic search over biblical texts to find related passag
 - Semantic search over the entire Bible text
 - Summarization of search results using Claude LLM
 - Web UI built with Streamlit for easy exploration
-- Leverages Chroma for vector search over BAAI BGE embeddings
+- Leverages Chroma for vector search over Instructor-XL embeddings
 - Modular design allowing swapping of components like DB, embeddings, LLM etc.
 
 ## Architecture
 
 Biblos follows a RAG (Retrieval Augmented Generation) architecture:
 
-1. Bible text is indexed in a Chroma vector database using BGE sentence embeddings
+1. Bible text is indexed in a Chroma vector database using sentence embeddings
 2. User searches for a topic, and relevant passages are retrieved by semantic similarity
 3. Top results are collated and passed to Claude to generate a summarization
 
@@ -50,5 +50,5 @@ Biblos leverages the following open source projects:
 - [Langchain](https://github.com/langchain-ai/langchain) - Building LLMs through composability
 - [Chroma](https://github.com/chroma-core/chroma) - Vector similarity search
 - [Anthropic](https://www.anthropic.com/) - Claude summarization model
-- [BAAI BGE Embeddings](https://huggingface.co/BAAI/bge-large-en-v1.5) - Text embeddings
+- [Instructor-XL Embeddings](https://huggingface.co/hkunlp/instructor-xl) - Text embeddings
 - [Streamlit](https://streamlit.io/) - Web UI

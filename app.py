@@ -1,5 +1,5 @@
 from langchain.vectorstores import Chroma
-from langchain.embeddings import HuggingFaceBgeEmbeddings
+from langchain.embeddings import HuggingFaceInstructEmbeddings
 from langchain.chat_models import ChatAnthropic
 import streamlit as st
 import streamlit_analytics
@@ -16,19 +16,15 @@ st.set_page_config(
     },
 )
 
-
 @st.cache_resource
 def setup():
-    model_name = "BAAI/bge-large-en-v1.5"
-    model_kwargs = {"device": "cpu"}
-    encode_kwargs = {"normalize_embeddings": True}
-    embeddings = HuggingFaceBgeEmbeddings(
-        model_name=model_name,
-        model_kwargs=model_kwargs,
-        encode_kwargs=encode_kwargs,
+    embeddings = HuggingFaceInstructEmbeddings(
+        model_name="hkunlp/instructor-xl",
+        query_instruction="Represent the Religious Bible verse text for semantic search:",
+        encode_kwargs = {'normalize_embeddings': True}
     )
     db = Chroma(
-        persist_directory="./data/db",
+        persist_directory="./data/instructor_1K_0_db",
         embedding_function=embeddings,
     )
     llm = ChatAnthropic(max_tokens=100000)
@@ -42,7 +38,11 @@ st.title("Biblos: Exploration Tool")
 prompt = "Can you provide key points about what these specific passages from the following texts say about the given topic, including related chapter and verse reference? Please restrict your summary to the content found exclusively in these verses and do not reference other biblical verses or context. Explain how they relate to eachother, theologically, in the context of the meta narrative of the gospel, across old and new testaments. The topic is: "
 
 default_query = "What did Jesus say about eternal life?"
-search_query = st.text_input("Semantic search", default_query)
+
+search_query = st.text_input(
+    "Semantic search (use keywords only for broader results, e.g. 'Kingdom of Heaven')",
+    default_query,
+)
 
 search_results = db.similarity_search_with_relevance_scores(
     search_query,

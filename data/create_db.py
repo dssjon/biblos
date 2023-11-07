@@ -4,7 +4,7 @@ import collections
 from langchain.text_splitter import CharacterTextSplitter
 from langchain.vectorstores import Chroma
 from langchain.schema import Document
-from langchain.embeddings import HuggingFaceBgeEmbeddings
+from langchain.embeddings import HuggingFaceInstructEmbeddings
 
 # Load XML
 tree = ET.parse("./engwebp_vpl.xml")
@@ -48,11 +48,10 @@ bible = verse_splitter.split_documents(documents)
 
 # Load embeddings
 print("loading embeddings")
-model_name = "BAAI/bge-large-en-v1.5"
-model_kwargs = {"device": "cpu"}
-encode_kwargs = {"normalize_embeddings": True}
-embedding_function = HuggingFaceBgeEmbeddings(
-    model_name=model_name, model_kwargs=model_kwargs, encode_kwargs=encode_kwargs
+embedding_function = HuggingFaceInstructEmbeddings(
+    model_name="hkunlp/instructor-xl",
+    query_instruction="Represent the Religious Bible verse text for semantic search:",
+    encode_kwargs = {'normalize_embeddings': True}
 )
 
 # Create Chroma database
