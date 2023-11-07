@@ -19,10 +19,8 @@ st.set_page_config(
 @st.cache_resource
 def setup():
     embeddings = HuggingFaceInstructEmbeddings(
-        model_name="hkunlp/instructor-xl",
+        model_name="hkunlp/instructor-large",
         query_instruction="Represent the Religious Bible verse text for semantic search:",
-        encode_kwargs = {'normalize_embeddings': True},
-        model_kwargs = {"device": "cpu"}
     )
     db = Chroma(
         persist_directory="./data/db",

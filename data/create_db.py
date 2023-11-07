@@ -38,7 +38,7 @@ for (book, chapter), verses in verses_by_chapter.items():
 
 # Split into chunks
 chunk_size = 1000
-chunk_overlap = 100
+chunk_overlap = 0
 verse_splitter = CharacterTextSplitter(
     separator="\n",
     chunk_size=chunk_size,
@@ -49,9 +49,10 @@ bible = verse_splitter.split_documents(documents)
 # Load embeddings
 print("loading embeddings")
 embedding_function = HuggingFaceInstructEmbeddings(
-    model_name="hkunlp/instructor-xl",
+    model_name="hkunlp/instructor-large",
     query_instruction="Represent the Religious Bible verse text for semantic search:",
-    encode_kwargs = {'normalize_embeddings': True}
+    encode_kwargs = {'normalize_embeddings': True},
+    model_kwargs = {"device": "cpu"}
 )
 
 # Create Chroma database
