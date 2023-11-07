@@ -21,10 +21,11 @@ def setup():
     embeddings = HuggingFaceInstructEmbeddings(
         model_name="hkunlp/instructor-xl",
         query_instruction="Represent the Religious Bible verse text for semantic search:",
-        encode_kwargs = {'normalize_embeddings': True}
+        encode_kwargs = {'normalize_embeddings': True},
+        model_kwargs = {"device": "cpu"}
     )
     db = Chroma(
-        persist_directory="./data/instructor_1K_0_db",
+        persist_directory="./data/db",
         embedding_function=embeddings,
     )
     llm = ChatAnthropic(max_tokens=100000)
@@ -40,7 +41,7 @@ prompt = "Can you provide key points about what these specific passages from the
 default_query = "What did Jesus say about eternal life?"
 
 search_query = st.text_input(
-    "Semantic search (use keywords only for broader results, e.g. 'Kingdom of Heaven')",
+    "Semantic search:",
     default_query,
 )
 
