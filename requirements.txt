@@ -4,4 +4,4 @@ chromadb
 anthropic
 sentence_transformers
 streamlit-analytics
-InstructorEmbedding
+htbuilder

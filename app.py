@@ -1,8 +1,18 @@
 from langchain.vectorstores import Chroma
-from langchain.embeddings import HuggingFaceInstructEmbeddings
+from langchain.embeddings import HuggingFaceBgeEmbeddings
 from langchain.chat_models import ChatAnthropic
 import streamlit as st
 import streamlit_analytics
+from htbuilder import (
+    HtmlElement,
+    div,
+    hr,
+    a,
+    p,
+    img,
+    styles,
+)
+from htbuilder.units import percent, px
 
 streamlit_analytics.start_tracking(load_from_json="./data/analytics.json")
 
@@ -16,15 +26,19 @@ st.set_page_config(
     },
 )
 
+
 @st.cache_resource
 def setup():
-    embeddings = HuggingFaceInstructEmbeddings(
-        model_name="hkunlp/instructor-xl",
-        query_instruction="Represent the Religious Bible verse text for semantic search:",
-        encode_kwargs = {'normalize_embeddings': True}
+    model_name = "BAAI/bge-large-en-v1.5"
+    model_kwargs = {"device": "cpu"}
+    encode_kwargs = {"normalize_embeddings": True}
+    embeddings = HuggingFaceBgeEmbeddings(
+        model_name=model_name,
+        model_kwargs=model_kwargs,
+        encode_kwargs=encode_kwargs,
     )
     db = Chroma(
-        persist_directory="./data/instructor_1K_0_db",
+        persist_directory="./data/db",
         embedding_function=embeddings,
     )
     llm = ChatAnthropic(max_tokens=100000)
@@ -79,3 +93,87 @@ with col2:
 streamlit_analytics.stop_tracking(
     save_to_json="./data/analytics.json", unsafe_password="x"
 )
+
+
+def image(src_as_string, **style):
+    return img(src=src_as_string, style=styles(**style))
+
+
+def link(link, text, **style):
+    return a(_href=link, _target="_blank", style=styles(**style))(text)
+
+
+def layout(*args):
+    style = """
+    <style>
+    # MainMenu {visibility: hidden;}
+    footer {visibility: hidden;}
+    .stApp { bottom: 40px; }
+    img[src*='img.buymeacoffee.com'] {
+    position: fixed;
+    bottom: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    max-width: 200px;
+    width: 20%;
+    height: auto;
+    margin-right: 10px;
+    margin-bottom: 5px;
+    }
+
+    /* Apply different styles for screens smaller than 600px */
+    @media screen and (max-width: 600px) {
+    img[src*='img.buymeacoffee.com'] {
+        width: 40%;
+        max-width: 200px;
+    }
+    }
+    </style>
+    """
+
+    style_div = styles(
+        position="fixed",
+        left=0,
+        bottom=0,
+        width=percent(100),
+        color="black",
+        text_align="right",
+        height="auto",
+        opacity=1,
+    )
+
+    style_hr = styles(
+        display="block",
+        margin=0,
+        border_width=px(0),
+    )
+
+    body = p()
+    foot = div(style=style_div)(hr(style=style_hr), body)
+
+    st.markdown(style, unsafe_allow_html=True)
+
+    for arg in args:
+        if isinstance(arg, str):
+            body(arg)
+
+        elif isinstance(arg, HtmlElement):
+            body(arg)
+
+    st.markdown(str(foot), unsafe_allow_html=True)
+
+
+def footer():
+    myargs = [
+        link(
+            "https://www.buymeacoffee.com/biblos",
+            image(
+                "https://img.buymeacoffee.com/button-api/?text=Community Supported &emoji=☕&slug=biblos&button_colour=ffffff&font_colour=000000&font_family=Poppins&outline_colour=000000&coffee_colour=ffffff"
+            ),
+        ),
+    ]
+    layout(*myargs)
+
+
+if __name__ == "__main__":
+    footer()
