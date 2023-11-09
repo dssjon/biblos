@@ -34,7 +34,7 @@ db, llm = setup()
 
 st.title("Biblos: Exploration Tool")
 
-prompt = "Can you provide key points about what these specific passages from the following texts say about the given topic, including related chapter and verse reference? Please restrict your summary to the content found exclusively in these verses and do not reference other biblical verses or context. Explain how they relate to eachother, theologically, in the context of the meta narrative of the gospel, across old and new testaments. The topic is: "
+prompt = "Can you provide key points about what these specific passages from the following texts say about the given topic, including related chapter and verse reference? Please restrict your summary to the content found exclusively in these verses and do not reference other biblical verses or context. Explain how they relate to each other, theologically, in the context of the meta narrative of the gospel, across Old and New Testaments. The topic is: "
 
 default_query = "What did Jesus say about eternal life?"
 
