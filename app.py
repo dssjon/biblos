@@ -3,6 +3,7 @@ from langchain.embeddings import HuggingFaceInstructEmbeddings
 from langchain.chat_models import ChatAnthropic
 import streamlit as st
 import streamlit_analytics
+from datetime import datetime
 
 streamlit_analytics.start_tracking(load_from_json="./data/analytics.json")
 
@@ -101,12 +102,16 @@ if ot != nt:
 else:
     testament_filter = None
 
+then = datetime.now()
+
 search_results = db.similarity_search_with_relevance_scores(
     search_query,
     k=num_verses_to_retrieve,
     score_function="cosine",
     filter=testament_filter,
 )
+
+st.markdown(f'*retrieved {len(search_results)} results in {datetime.now() - then}*')
 
 col1, col2 = st.columns([1, 1])
 
