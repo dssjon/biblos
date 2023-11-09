@@ -26,7 +26,12 @@ def setup():
         persist_directory="./data/db",
         embedding_function=embeddings,
     )
-    llm = ChatAnthropic(max_tokens=100000)
+    try:
+        llm = ChatAnthropic(max_tokens=100000)
+    except:
+        # No API token, found, so don't enable LLM support.
+        print(f'No API token found, so LLM support is disabled.')
+        llm = None
     return db, llm
 
 
@@ -62,22 +67,26 @@ with col1:
             st.write(f"**Similarity Score**: {score}")
 with col2:
     if st.button("Summarize"):
-        with st.spinner("Summarizing text..."):
-            results = []
-            for r in search_results:
-                content = r[0].page_content
-                metadata = r[0].metadata["book"]
-                chapter = r[0].metadata["chapter"]
-                results.append(f"Source: {metadata}\nContent: {content}")
+        if llm is None:
+            st.error("No API token found, so LLM support is disabled.")
+            st.stop()
+        else:
+            with st.spinner("Summarizing text..."):
+                results = []
+                for r in search_results:
+                    content = r[0].page_content
+                    metadata = r[0].metadata["book"]
+                    chapter = r[0].metadata["chapter"]
+                    results.append(f"Source: {metadata}\nContent: {content}")
 
-            if results == "":
-                st.error("No results found")
-                st.stop()
+                if results == "":
+                    st.error("No results found")
+                    st.stop()
 
-            all_results = "\n".join(results)
-            llm_query = f"{prompt} {search_query}:\n{all_results}"
-            llm_response = llm.predict(llm_query)
-            st.success(llm_response)
+                all_results = "\n".join(results)
+                llm_query = f"{prompt} {search_query}:\n{all_results}"
+                llm_response = llm.predict(llm_query)
+                st.success(llm_response)
 
 streamlit_analytics.stop_tracking(
     save_to_json="./data/analytics.json", unsafe_password="x"
