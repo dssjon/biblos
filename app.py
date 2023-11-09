@@ -48,9 +48,15 @@ search_query = st.text_input(
     default_query,
 )
 
+with st.expander("Search Options"):
+    with st.header("Number of Results"):
+        num_verses_to_retrieve = st.slider(
+            "Number of results:", min_value=1, max_value=10, value=4, step=1
+        )
+
 search_results = db.similarity_search_with_relevance_scores(
     search_query,
-    k=4,
+    k=num_verses_to_retrieve,
     score_function="cosine",
 )
 
