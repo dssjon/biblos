@@ -32,10 +32,38 @@ def setup():
         # No API token, found, so don't enable LLM support.
         print(f'No API token found, so LLM support is disabled.')
         llm = None
-    return db, llm
 
+    # Build a list of unique book names. This will be used for NT / OT filtering.
+    books = {}
+    testament = "OT"
+    results = db.get(include=["metadatas"])
+    metadatas = results['metadatas']
+    for r in metadatas:
+        # Print the datatype of the result
+        book = r["book"]
 
-db, llm = setup()
+        if book.lower().startswith("mat"):
+            testament = "NT"
+        if testament not in books:
+            books[testament] = []
+        if book not in books[testament]:
+            books[testament].append(book)
+
+    # Create an array that looks like: [{"book": "GEN"}, {"book": "EXO"}, {"book": "LEV"} ... ]
+    # This will be passed to the OR filter in the search.
+    #  More info: https://github.com/chroma-core/chroma/blob/main/examples/basic_functionality/where_filtering.ipynb
+    ot_books = []
+    nt_books = []
+    for book in books["OT"]:
+        ot_books.append({"book": book})
+    for book in books["NT"]:
+        nt_books.append({"book": book})
+
+    testaments = {"OT": ot_books, "NT": nt_books}
+
+    return db, llm, testaments
+
+db, llm, testaments = setup()
 
 st.title("Biblos: Exploration Tool")
 
@@ -49,15 +77,32 @@ search_query = st.text_input(
 )
 
 with st.expander("Search Options"):
+    with st.header("Testament"):
+        col1, col2 = st.columns([1, 1])
+        with col1:
+            # HACK: If we put a space between the words instead of a tab, then the app crashes.
+            ot = st.checkbox("Old\tTestament", value=True)
+        with col2:
+            nt = st.checkbox("New\tTestament", value=True)
     with st.header("Number of Results"):
         num_verses_to_retrieve = st.slider(
             "Number of results:", min_value=1, max_value=10, value=4, step=1
         )
 
+# Build a search filter for the testaments
+if ot != nt:
+    if ot:
+        testament_filter = {"$or": testaments["OT"]}
+    else:
+        testament_filter = {"$or": testaments["NT"]}
+else:
+    testament_filter = None
+
 search_results = db.similarity_search_with_relevance_scores(
     search_query,
     k=num_verses_to_retrieve,
     score_function="cosine",
+    filter=testament_filter,
 )
 
 col1, col2 = st.columns([1, 1])
