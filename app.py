@@ -92,6 +92,9 @@ with st.expander("Search Options"):
 # Build a search filter for the testaments
 if ot != nt:
     if ot:
+        # NOTE: If / when the database has `testament` added as a metadata field, then this can be simplified to:
+        #  testament_filter = {"testament": "OT"}
+        #  Also, the `testaments` dictionary could then be removed, along with all of its associated code in `setup()`
         testament_filter = {"$or": testaments["OT"]}
     else:
         testament_filter = {"$or": testaments["NT"]}
