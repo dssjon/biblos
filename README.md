@@ -32,14 +32,29 @@ The UI is built using Streamlit for easy exploration, with Python code modulariz
 To run Biblos locally:
 
 1. Install requirements
-2. Download and preprocess Bible text into a Chroma database
-3. Launch the Streamlit app:
 
 ```
 pip install -r requirements.txt
+```
 
+2. Download embedding model and preprocess Bible text into a Chroma database (optional -- if you don't recreate this, you can use the default embedding database that comes with the application)
+
+```
+cd data
 python create_db.py
+cd ..
+```
+_Note: This can take a long time (approx 18 minutes on an M1 Macbook Pro)_
 
+3. Obtain an [Anthropic API Key](https://docs.anthropic.com/claude/reference/getting-started-with-the-api) and set it to environment variable `ANTHROPIC_API_KEY`
+
+```
+export ANTHROPIC_API_KEY ***your_api_key***
+```
+
+4. Launch the Streamlit app:
+
+```
 streamlit run app.py
 ```
 
