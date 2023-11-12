@@ -21,6 +21,8 @@ st.set_page_config(
 def setup():
     embeddings = HuggingFaceInstructEmbeddings(
         model_name="hkunlp/instructor-large",
+        # NOTE: Not changing the capitalization in this query instruction until the database is regenerated.  Not sure if it will make a difference or not, but better safe than sorry. Once the data is regenerated, then update this line to ensure that the prompt text matches again.
+        #query_instruction="Represent the religious Bible verse text for semantic search:",
         query_instruction="Represent the Religious Bible verse text for semantic search:",
     )
     db = Chroma(
