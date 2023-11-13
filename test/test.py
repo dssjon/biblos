@@ -5,19 +5,6 @@ import streamlit as st
 
 def query_databases(dbs, queries):
 
-    # TODO: Find semantic matches
-    def get_scores(search_results):
-        page_contents = [
-            doc[0].page_content.replace("\n", " ") for doc in search_results
-        ]
-        return (
-            sum(
-                any(word in content.lower() for word in query_words)
-                for content in page_contents
-            ),
-            sum(match[1] for match in search_results),
-        )
-
     results = []
     for idx, db in enumerate(dbs):
         db_results = []
@@ -29,7 +16,14 @@ def query_databases(dbs, queries):
             )
             query_words = query.lower().split()
 
-            match_count, total_similarity_scores, = get_scores(search_results)
+            page_contents = [doc[0].page_content.replace("\n", " ") for doc in search_results]
+
+            # TODO: Find semantic matches
+            match_count = sum(
+                any(word in content.lower() for word in query_words)
+                for content in page_contents
+            )
+            total_similarity_scores = sum(match[1] for match in search_results)
             
             db_results.append(
                 {
