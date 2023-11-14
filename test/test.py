@@ -118,7 +118,7 @@ encode_kwargs = {"normalize_embeddings": True}
 # TODO: Allow for creation of db from scratch, instead of including pre-built dbs
 db_configs = [
     {
-        # NOTE: This db was generated with a 100k chunk offset hence the overlap and added word count
+        # NOTE: This db was generated with a 100 character offset per chunk hence the overlapping added word count
         "model_name": "BAAI/bge-large-en-v1.5",
         "persist_directory": "./test_data/bge_large_1k_db",
         "embedding_class": HuggingFaceBgeEmbeddings,
