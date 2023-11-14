@@ -1,7 +1,53 @@
 from langchain.embeddings import HuggingFaceBgeEmbeddings, HuggingFaceInstructEmbeddings
 from langchain.vectorstores import Chroma
+from langchain.schema import Document
+import xml.etree.ElementTree as ET
+import collections
 import streamlit as st
 
+def get_count_of_words_in_engwebp_vpl_xml():
+    tree = ET.parse("../data/engwebp_vpl.xml")
+    root = tree.getroot()
+
+    verses_by_chapter = collections.defaultdict(list)
+    for verse in root.findall("v"):
+        book = verse.attrib["b"]
+        chapter = int(verse.attrib["c"])
+        verse_num = int(verse.attrib["v"])
+        text = verse.text
+
+        verses_by_chapter[(book, chapter)].append((verse_num, text))
+
+    documents = []
+    for (book, chapter), verses in verses_by_chapter.items():
+        chapter_text = ""
+        for verse_num, text in verses:
+            chapter_text += f"{text}\n"
+
+        verse_nums_as_string = ",".join(str(verse_num) for verse_num, text in verses)
+        doc = Document(page_content=chapter_text)
+        doc.metadata = {
+            "book": book,
+            "chapter": chapter,
+            "verse_nums": verse_nums_as_string,
+        }
+        documents.append(doc)
+
+    total_count = 0
+    for doc in documents:
+        chapter_text = doc.page_content
+        chapter_words = chapter_text.split()
+        chapter_word_count = len(chapter_words)
+        total_count += chapter_word_count
+
+    return total_count
+
+def get_count_of_words_in_db(db):
+    total_word_count = 0
+    docs = db._collection.get()["documents"]
+    for item in docs:
+        total_word_count += len(item.split())
+    return total_word_count
 
 def query_databases(dbs, queries):
 
@@ -25,6 +71,7 @@ def query_databases(dbs, queries):
             )
             total_similarity_scores = sum(match[1] for match in search_results)
             
+
             db_results.append(
                 {
                     "idx": idx,
@@ -37,6 +84,7 @@ def query_databases(dbs, queries):
 
         total_matches = sum(result["matches"] for result in db_results)
         total_scores = sum(result["total_similarity_scores"] for result in db_results)
+        total_word_count = get_count_of_words_in_db(db)
         
         db_results.append(
             {
@@ -44,6 +92,7 @@ def query_databases(dbs, queries):
                 "query": "total",
                 "matches": total_matches,
                 "total_similarity_scores": total_scores,
+                "total_word_count": total_word_count,
             }
         )
         results.extend(db_results)
@@ -69,6 +118,7 @@ encode_kwargs = {"normalize_embeddings": True}
 # TODO: Allow for creation of db from scratch, instead of including pre-built dbs
 db_configs = [
     {
+        # NOTE: This db was generated with a 100k chunk offset hence the overlap and added word count
         "model_name": "BAAI/bge-large-en-v1.5",
         "persist_directory": "./test_data/bge_large_1k_db",
         "embedding_class": HuggingFaceBgeEmbeddings,
@@ -103,6 +153,8 @@ results = query_databases(dbs, queries)
 
 st.title("Test results")
 
+st.subheader(f"Total word count of engwebp_vpl_xml: {get_count_of_words_in_engwebp_vpl_xml()}")
+
 columns = st.columns(len(dbs))
 for idx, col in enumerate(columns):
     # TODO: Return db name and render instead of idx
@@ -122,3 +174,7 @@ for query in queries + ["total"]:
         col.write(
             f"Total Similarity Scores: {res['total_similarity_scores'] if res else 'N/A'}"
         )
+        if res and "total_word_count" in res:
+            col.write(
+                f"Total Word Count: {res['total_word_count'] if res else 'N/A'}"
+            )
