@@ -3,7 +3,6 @@ from langchain.embeddings import HuggingFaceInstructEmbeddings
 from langchain.chat_models import ChatAnthropic
 import streamlit as st
 import streamlit_analytics
-from datetime import datetime
 
 streamlit_analytics.start_tracking(load_from_json="./data/analytics.json")
 
@@ -21,8 +20,6 @@ st.set_page_config(
 def setup():
     embeddings = HuggingFaceInstructEmbeddings(
         model_name="hkunlp/instructor-large",
-        # NOTE: Not changing the capitalization in this query instruction until the database is regenerated.  Not sure if it will make a difference or not, but better safe than sorry. Once the data is regenerated, then update this line to ensure that the prompt text matches again.
-        #query_instruction="Represent the religious Bible verse text for semantic search:",
         query_instruction="Represent the Religious Bible verse text for semantic search:",
     )
     db = Chroma(
@@ -30,9 +27,8 @@ def setup():
         embedding_function=embeddings,
     )
     try:
-        llm = ChatAnthropic(max_tokens=100000)
+        llm = ChatAnthropic(max_tokens=100000, model_name="claude-2.1")
     except:
-        # No API token, found, so don't enable LLM support.
         print(f'No API token found, so LLM support is disabled.')
         llm = None
 
@@ -53,8 +49,7 @@ def setup():
             books[testament].append(book)
 
     # Create an array that looks like: [{"book": "GEN"}, {"book": "EXO"}, {"book": "LEV"} ... ]
-    # This will be passed to the OR filter in the search.
-    #  More info: https://github.com/chroma-core/chroma/blob/main/examples/basic_functionality/where_filtering.ipynb
+    # e.g. https://github.com/chroma-core/chroma/blob/main/examples/basic_functionality/where_filtering.ipynb
     ot_books = []
     nt_books = []
     for book in books["OT"]:
@@ -70,7 +65,11 @@ db, llm, testaments = setup()
 
 st.title("Biblos: Exploration Tool")
 
-prompt = "Can you provide key points about what these specific passages from the following texts say about the given topic, including related chapter and verse reference? Please restrict your summary to the content found exclusively in these verses and do not reference other biblical verses or context. Explain how they relate to each other, theologically, in the context of the meta narrative of the gospel, across Old and New Testaments. The topic is: "
+prompt = """Based on the user's search query, the topic is: {topic}
+
+Please provide a concise summary of the key points made in the following Bible passages about the topic above, including chapter and verse references. Focus only on the content found in these specific verses. Explain connections between the passages and how they theologically relate to the overarching biblical meta narrative across both Old and New Testaments.  
+
+{passages}"""
 
 default_query = "What did Jesus say about eternal life?"
 
@@ -83,10 +82,9 @@ with st.expander("Search Options"):
     with st.header("Testament"):
         col1, col2 = st.columns([1, 1])
         with col1:
-            # HACK: If we put a space between the words instead of a tab, then the app crashes.
-            ot = st.checkbox("Old\tTestament", value=True)
+            ot = st.checkbox("Old Testament", value=True)
         with col2:
-            nt = st.checkbox("New\tTestament", value=True)
+            nt = st.checkbox("New Testament", value=True)
     with st.header("Number of Results"):
         num_verses_to_retrieve = st.slider(
             "Number of results:", min_value=1, max_value=10, value=4, step=1
@@ -96,7 +94,6 @@ with st.expander("Search Options"):
 if ot != nt:
     if ot:
         # NOTE: If / when the database has `testament` added as a metadata field, then this can be simplified to:
-        #  testament_filter = {"testament": "OT"}
         #  Also, the `testaments` dictionary could then be removed, along with all of its associated code in `setup()`
         testament_filter = {"$or": testaments["OT"]}
     else:
@@ -104,16 +101,12 @@ if ot != nt:
 else:
     testament_filter = None
 
-then = datetime.now()
-
 search_results = db.similarity_search_with_relevance_scores(
     search_query,
     k=num_verses_to_retrieve,
     score_function="cosine",
     filter=testament_filter,
 )
-
-st.markdown(f'*retrieved {len(search_results)} results in {datetime.now() - then}*')
 
 col1, col2 = st.columns([1, 1])
 
@@ -145,7 +138,7 @@ with col2:
                     st.stop()
 
                 all_results = "\n".join(results)
-                llm_query = f"{prompt} {search_query}:\n{all_results}"
+                llm_query = prompt.format(topic=search_query, passages=all_results)
                 llm_response = llm.predict(llm_query)
                 st.success(llm_response)
 
