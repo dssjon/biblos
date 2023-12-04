@@ -32,36 +32,9 @@ def setup():
         print(f'No API token found, so LLM support is disabled.')
         llm = None
 
-    # Build a list of unique book names. This will be used for NT / OT filtering.
-    books = {}
-    testament = "OT"
-    results = db.get(include=["metadatas"])
-    metadatas = results['metadatas']
-    for r in metadatas:
-        # Print the datatype of the result
-        book = r["book"]
+    return db, llm
 
-        if book.lower().startswith("mat"):
-            testament = "NT"
-        if testament not in books:
-            books[testament] = []
-        if book not in books[testament]:
-            books[testament].append(book)
-
-    # Create an array that looks like: [{"book": "GEN"}, {"book": "EXO"}, {"book": "LEV"} ... ]
-    # e.g. https://github.com/chroma-core/chroma/blob/main/examples/basic_functionality/where_filtering.ipynb
-    ot_books = []
-    nt_books = []
-    for book in books["OT"]:
-        ot_books.append({"book": book})
-    for book in books["NT"]:
-        nt_books.append({"book": book})
-
-    testaments = {"OT": ot_books, "NT": nt_books}
-
-    return db, llm, testaments
-
-db, llm, testaments = setup()
+db, llm = setup()
 
 st.title("Biblos: Exploration Tool")
 
@@ -91,15 +64,12 @@ with st.expander("Search Options"):
         )
 
 # Build a search filter for the testaments
+testament_filter = {}
 if ot != nt:
     if ot:
-        # NOTE: If / when the database has `testament` added as a metadata field, then this can be simplified to:
-        #  Also, the `testaments` dictionary could then be removed, along with all of its associated code in `setup()`
-        testament_filter = {"$or": testaments["OT"]}
+        testament_filter = {"testament": "OT"}
     else:
-        testament_filter = {"$or": testaments["NT"]}
-else:
-    testament_filter = None
+        testament_filter = {"testament": "NT"}
 
 search_results = db.similarity_search_with_relevance_scores(
     search_query,
