@@ -17,8 +17,8 @@ from langchain.embeddings import HuggingFaceInstructEmbeddings
 
 input_file = "./engwebp_vpl.xml"
 model_name = "hkunlp/instructor-large"
-query_instruction = "Represent the religious Bible verse text for semantic search:"
-output_dir = "./db"
+query_instruction = "Represent the Religious Bible verse text for semantic search:"
+output_dir = "./output_db"
 
 # Parse the command-line arguments
 
@@ -109,7 +109,7 @@ embedding_function = HuggingFaceInstructEmbeddings(
     model_name=model_name,
     query_instruction=query_instruction,
     encode_kwargs = {'normalize_embeddings': True},
-    model_kwargs = {"device": "cpu"}
+    model_kwargs = {"device": "mps"}
 )
 
 # Create Chroma database
