@@ -250,7 +250,7 @@ for i, r in enumerate(commentary_search_results):
                 st.write(f"**Source**: {source_title}, on {book}")
             st.write(f"**Similarity Score**: {score}")
 
-if st.button("Summarize"):
+if st.button("Summarize Commentary"):
     if llm is None:
         st.error("No API token found, so LLM support is disabled.")
         st.stop()
