@@ -91,6 +91,11 @@ for (book, chapter), verses in verses_by_chapter.items():
     }
     documents.append(doc)
 
+# TODO: Try out alternative splitters and test results
+# RecursiveCharacterTextSplitter: This splitter divides the text into fragments based on characters, starting with the first character. If the fragments turn out to be too large, it moves on to the next character. It offers flexibility by allowing you to define the division characters and fragment size
+
+# RecursiveTextSplitter: This splitter divides text into fragments based on words or tokens instead of characters. This provides a more semantic view and is ideal for content analysis rather than structure
+
 # Split into chunks
 chunk_size = 1000
 chunk_overlap = 0
