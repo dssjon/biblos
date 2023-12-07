@@ -54,7 +54,6 @@ except:
     llm = None
 
 st.title("Biblos: Exploration Tool")
-st.text("Semantic search the Bible and Church Fathers")
 
 prompt = """Based on the user's search query, the topic is: {topic}
 Please provide a concise summary of the key points made in the following Bible passages about the topic above, including chapter and verse references. Focus only on the content found in these specific verses. Explain connections between the passages and how they theologically relate to the overarching biblical meta narrative across both Old and New Testaments.
@@ -94,12 +93,21 @@ if 'initialized' not in st.session_state:
     st.session_state.search_query = get_next_query()
     st.session_state.initialized = True
 
-search_query = st.text_input("Keyword(s):", st.session_state.search_query)
+search_query = st.text_input("Semantic search the Bible and Church Fathers:", st.session_state.search_query)
 
 
 church_fathers = [
-    "Augustine of Hippo", "Thomas Aquinas", "John Chrysostom", "Athanasius of Alexandria"
+    "Augustine of Hippo",
+    "Athanasius of Alexandria",
+    "Basil of Caesarea",
+    "Gregory of Nazianzus",
+    "Gregory of Nyssa",
+    "Cyril of Alexandria",
+    "Irenaeus",
+    "Cyprian",
+    "Origen of Alexandria"
 ]
+
 
 # Initialize a dictionary to store the checkbox states
 author_filters = {}
@@ -165,13 +173,20 @@ elif len(selected_authors) == 1:
 else:
     commentary_search_results = []
 
+commentary_search_results = []
+
 if len(selected_authors) > 0:
-    commentary_search_results = commentary_db.similarity_search_with_relevance_scores(
-        search_query,
-        k=num_verses_to_retrieve,
-        score_function="cosine",
-        filter=author_filter_query
-    )
+
+    for author in selected_authors:
+        # For each selected author, perform an individual search and get the top result
+        individual_author_results = commentary_db.similarity_search_with_relevance_scores(
+            search_query,
+            k=1,  # We only want the top result for each author
+            score_function="cosine",
+            filter={"father_name": author}
+        )
+        if individual_author_results:
+            commentary_search_results.extend(individual_author_results)
 
 col1, col2, col3 = st.columns([1, 1, 1])
 
@@ -184,28 +199,34 @@ with col1:
         score = r[1]
         with st.expander(f"**{book}** {chapter}", expanded=True):
             st.write(f"{content}")
-            st.write(f"**Similarity Score**: {score}")
+            #st.write(f"**Similarity Score**: {score}")
 
 with col2:
     st.caption("Commentary search results:")
+
+    # sort commentary results by highest score desc
+    commentary_search_results = sorted(commentary_search_results, key=lambda x: x[1], reverse=True)
     for r in commentary_search_results:
         content = r[0].page_content
-        father_name = r[0].metadata["father_name"]
-        source_title = r[0].metadata["source_title"]
-        book = r[0].metadata["book"]
-        score = r[1]
-        with st.expander(f"**{father_name}**", expanded=True):
-            st.write(f"{content}")
-            # standardize the casing of the book name and source title
-            if book:
-                book = book.title()
-            if source_title:
-                source_title = source_title.title()
-            if not source_title and book:
-                st.write(f"**Source**: Commentary on {book}")
-            if source_title:
-                st.write(f"**Source**: {source_title}")
-            st.write(f"**Similarity Score**: {score}")
+        if len(content) > 250: 
+            father_name = r[0].metadata["father_name"]
+            source_title = r[0].metadata["source_title"]
+            book = r[0].metadata["book"]
+            score = r[1]
+            with st.expander(f"**{father_name}**", expanded=True):
+                st.write(f"{content}")
+                # standardize the casing of the book name and source title
+                if book:
+                    book = book.title()
+                if source_title:
+                    source_title = source_title.title()
+                if not source_title and book:
+                    st.write(f"**Source**: Commentary on {book}")
+                if not book and source_title:
+                    st.write(f"**Source**: {source_title}")
+                if source_title and book:
+                    st.write(f"**Source**: {source_title}, on {book}")
+                st.write(f"**Similarity Score**: {score}")
 
 with col3:
     st.caption("Summarize text:")

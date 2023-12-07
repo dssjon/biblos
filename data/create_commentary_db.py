@@ -22,7 +22,15 @@ output_dir = args.output_dir
 
 # subset of the authors in the DB
 top_authors = [
-    "Augustine of Hippo", "Thomas Aquinas", "John Chrysostom", "Jerome", "Athanasius of Alexandria"
+    "Augustine of Hippo",
+    "Athanasius of Alexandria",
+    "Basil of Caesarea",
+    "Gregory of Nazianzus",
+    "Gregory of Nyssa",
+    "Cyril of Alexandria",
+    "Irenaeus",
+    "Cyprian",
+    "Origen of Alexandria"
 ]
 
 # New Testament book commentaries found in the db file
@@ -40,7 +48,7 @@ try:
 
     query = "SELECT id, father_name, file_name, append_to_author_name, ts, book, location_start, location_end, txt, source_url, source_title FROM commentary"
     query = query + " WHERE father_name IN ('" + "','".join(top_authors) + "')"
-    query += " AND book IN ('" + "','".join(new_testament_books) + "')"
+    #query += " AND book IN ('" + "','".join(new_testament_books) + "')"
 
     print("running query", query)
     cursor.execute(query)
@@ -79,14 +87,15 @@ cursor.close()
 connection.close()
 
 #Split into chunks
-chunk_size = 2000
+chunk_size = 1500
 chunk_overlap = 0
-text_splitter = CharacterTextSplitter(
-    separator="\n\n",
+text_splitter = RecursiveCharacterTextSplitter(
+    #separator="\n\n",
     chunk_size=chunk_size,
     chunk_overlap=chunk_overlap,
-    length_function = len,
-    is_separator_regex = True,
+    #length_function = len,
+    #is_separator_regex = True,
+    #seperator_regex = r"\n\n",
 )
 
 split_documents = text_splitter.split_documents(documents)

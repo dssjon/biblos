@@ -4,7 +4,7 @@ import sys
 import argparse
 from datetime import datetime
 
-from langchain.text_splitter import CharacterTextSplitter
+from langchain.text_splitter import CharacterTextSplitter, RecursiveCharacterTextSplitter
 from langchain.vectorstores import Chroma
 from langchain.schema import Document
 from langchain.embeddings import HuggingFaceInstructEmbeddings
@@ -18,7 +18,7 @@ from langchain.embeddings import HuggingFaceInstructEmbeddings
 input_file = "./engwebp_vpl.xml"
 model_name = "hkunlp/instructor-large"
 query_instruction = "Represent the Religious Bible verse text for semantic search:"
-output_dir = "./output_db"
+output_dir = "./output_bible_db"
 
 # Parse the command-line arguments
 
@@ -97,10 +97,10 @@ for (book, chapter), verses in verses_by_chapter.items():
 # RecursiveTextSplitter: This splitter divides text into fragments based on words or tokens instead of characters. This provides a more semantic view and is ideal for content analysis rather than structure
 
 # Split into chunks
-chunk_size = 1000
+chunk_size = 1500
 chunk_overlap = 0
-verse_splitter = CharacterTextSplitter(
-    separator="\n",
+verse_splitter = RecursiveCharacterTextSplitter(
+    ##separator="\n",
     chunk_size=chunk_size,
     chunk_overlap=chunk_overlap,
 )
