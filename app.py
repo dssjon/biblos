@@ -129,43 +129,43 @@ def perform_commentary_search_parallel(commentary_db, search_query):
 
 
 def display_bible_results(results):
-    cols = st.columns(3)
+    # cols = st.columns(3)
     for i, r in enumerate(results):
-        with cols[i % 3]:
-            content = r[0].page_content
-            book = r[0].metadata[BOOK]
-            chapter = r[0].metadata[CHAPTER]
-            score = r[1]
-            with st.expander(f"**{book}** {chapter}", expanded=True):
-                st.write(f"{content}")
-                st.write(SCORE_RESULT.format(value=score))
+    #     with cols[i % 3]:
+        content = r[0].page_content
+        book = r[0].metadata[BOOK]
+        chapter = r[0].metadata[CHAPTER]
+        score = r[1]
+        with st.expander(f"**{book}** {chapter}", expanded=True):
+            st.write(f"{content}")
+            st.write(SCORE_RESULT.format(value=score))
 
 
 def display_commentary_results(results):
-    cols = st.columns(3)
+    #cols = st.columns(3)
     results = sorted(results, key=lambda x: x[1], reverse=True)
     results = [r for r in results if r[1] >= 0.81 and len(r[0].page_content) >= 325]
     for i, r in enumerate(results):
-        with cols[i % 3]:
-            content, metadata = r[0].page_content, r[0].metadata
-            father_name = metadata[FATHER_NAME]
-            source_title = metadata[SOURCE_TITLE]
-            book = metadata[BOOK]
-            score = r[1]
-            with st.expander(f"**{father_name}**", expanded=True):
-                st.write(f"{content}")
-                source_info = ", ".join(
-                    filter(
-                        None,
-                        [
-                            source_title.title() if source_title else None,
-                            f"on {book.title()}" if book else None,
-                        ],
-                    )
+        #with cols[i % 3]:
+        content, metadata = r[0].page_content, r[0].metadata
+        father_name = metadata[FATHER_NAME]
+        source_title = metadata[SOURCE_TITLE]
+        book = metadata[BOOK]
+        score = r[1]
+        with st.expander(f"**{father_name}**", expanded=True):
+            st.write(f"{content}")
+            source_info = ", ".join(
+                filter(
+                    None,
+                    [
+                        source_title.title() if source_title else None,
+                        f"on {book.title()}" if book else None,
+                    ],
                 )
-                if source_info:
-                    st.write(f"**Source**: {source_info}")
-                st.write(SCORE_RESULT.format(value=score))
+            )
+            if source_info:
+                st.write(f"**Source**: {source_info}")
+            st.write(SCORE_RESULT.format(value=score))
 
 def format_commentary_results(commentary_results):
     return [
