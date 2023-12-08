@@ -65,7 +65,7 @@ SOURCE_TITLE = "source_title"
 BOOK = "book"
 CHAPTER = "chapter"
 TITLE = "Biblos: Exploration Tool"
-SEARCH_LABEL = "Semantic search the Bible and Church Fathers:"
+SEARCH_LABEL = "Enter query:"
 SCORE_RESULT = """**Similarity Score**: {value}"""
 SCORE_FUNCTION = "cosine"
 
