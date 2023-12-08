@@ -54,14 +54,18 @@ search_query = st.text_input(
     "Semantic search the Bible and Church Fathers:", st.session_state.search_query
 )
 
-# Initialize a dictionary to store the checkbox states
-author_filters = {}
-
-
 def update_author_selection(select_all=True):
     for author in CHURCH_FATHERS:
         st.session_state[author] = select_all
 
+def create_author_filters(church_fathers, columns):
+    author_filters = {}
+    for i, author in enumerate(church_fathers):
+        col = columns[(i % 2) + 1]
+        if author not in st.session_state:
+            st.session_state[author] = True 
+        author_filters[author] = col.checkbox(author, value=st.session_state[author])
+    return author_filters
 
 with st.expander("Search Options"):
     with st.header("Testament"):
@@ -79,25 +83,15 @@ with st.expander("Search Options"):
     st.divider()
 
     with st.header("Authors"):
-        # Create a column layout for authors
         cols = st.columns(3)
 
-        # Add Select All and Deselect All buttons
         with cols[0]:
-            if st.button("Select All"):
+            if st.button("Select all"):
                 update_author_selection(select_all=True)
-        with cols[0]:
-            if st.button("Deselect All"):
+            if st.button("De-select all"):
                 update_author_selection(select_all=False)
 
-        # Initialize checkboxes with states stored in session_state
-        for i, author in enumerate(CHURCH_FATHERS):
-            col = cols[(i % 2) + 1]
-            if author not in st.session_state:
-                st.session_state[author] = True  # Default state is checked
-            author_filters[author] = col.checkbox(
-                author, value=st.session_state[author]
-            )
+        author_filters = create_author_filters(CHURCH_FATHERS, cols)
 
 
 # Build a search filter for the testaments
