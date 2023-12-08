@@ -71,7 +71,8 @@ def create_author_filters(church_fathers, columns):
         col = columns[(i % 2) + 1]
         if author not in st.session_state:
             st.session_state[author] = True
-        author_filters[author] = col.checkbox(author, value=st.session_state[author])
+        author_filters[author] = col.checkbox(
+            author, value=st.session_state[author])
     return author_filters
 
 
@@ -170,7 +171,8 @@ def display_commentary_results(results):
     st.caption("Commentary search results:")
     cols = st.columns(3)
     results = sorted(results, key=lambda x: x[1], reverse=True)
-    results = [r for r in results if r[1] >= 0.819 and len(r[0].page_content) >= 300]
+    results = [r for r in results if r[1] >=
+               0.819 and len(r[0].page_content) >= 300]
     for i, r in enumerate(results):
         with cols[i % 3]:
             content, metadata = r[0].page_content, r[0].metadata
@@ -215,7 +217,8 @@ def summarize_results(llm, results, summary_prompt):
 
 def format_commentary_results(commentary_results):
     return [
-        f"Source: {r[0].metadata[FATHER_NAME]}{r[0].metadata[BOOK]}{r[0].metadata[SOURCE_TITLE]}\nContent: {r[0].page_content}"
+        f"Source: {r[0].metadata[FATHER_NAME]}{r[0].metadata[BOOK]}{
+            r[0].metadata[SOURCE_TITLE]}\nContent: {r[0].page_content}"
         for r in commentary_results
     ]
 
@@ -230,7 +233,8 @@ def format_bible_results(bible_search_results):
 
 if st.button("Summarize"):
     formatted_bible_results = format_bible_results(bible_search_results)
-    llm_response = summarize_results(llm, formatted_bible_results, BIBLE_SUMMARY_PROMPT)
+    llm_response = summarize_results(
+        llm, formatted_bible_results, BIBLE_SUMMARY_PROMPT)
     if llm_response:
         st.success(llm_response)
 
@@ -239,7 +243,8 @@ st.divider()
 display_commentary_results(commentary_search_results)
 
 if st.button("Summarize commentary"):
-    formatted_commentary_results = format_commentary_results(commentary_search_results)
+    formatted_commentary_results = format_commentary_results(
+        commentary_search_results)
     llm_response = summarize_results(
         llm, formatted_commentary_results, COMMENTARY_SUMMARY_PROMPT
     )
