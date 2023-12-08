@@ -5,6 +5,7 @@ from langchain.chat_models import ChatAnthropic
 import streamlit_analytics
 import random
 from constants import *
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 streamlit_analytics.start_tracking(load_from_json=ANALYTICS_JSON_PATH)
 
@@ -127,29 +128,37 @@ bible_search_results = bible_db.similarity_search_with_relevance_scores(
 )
 
 
-def perform_commentary_search(commentary_db, search_query, authors):
+def perform_commentary_search_parallel(commentary_db, search_query, authors):
     search_results = []
-    if authors:
-        for author in authors:
-            results = commentary_db.similarity_search_with_relevance_scores(
-                search_query,
-                k=1,
-                score_function=SCORE_FUNCTION,
-                filter={FATHER_NAME: author},
-            )
-            if results:
-                search_results.extend(results)
+
+    # Define a function to perform the search for a single author
+    def search_for_author(author):
+        return commentary_db.similarity_search_with_relevance_scores(
+            search_query,
+            k=1,
+            score_function=SCORE_FUNCTION,
+            filter={FATHER_NAME: author},
+        )
+
+    # Use ThreadPoolExecutor to run searches in parallel
+    with ThreadPoolExecutor() as executor:
+        # Submit all the search tasks and get a list of futures
+        future_to_author = {executor.submit(search_for_author, author): author for author in authors}
+
+        # As each future completes, extend the search results
+        for future in as_completed(future_to_author):
+            author = future_to_author[future]
+            try:
+                results = future.result()
+                if results:
+                    search_results.extend(results)
+            except Exception as exc:
+                print(f'Author search generated an exception for {author}: {exc}')
+
     return search_results
 
-
-selected_authors = [
-    author for author, is_selected in author_filters.items() if is_selected
-]
-
-commentary_search_results = perform_commentary_search(
-    commentary_db, search_query, selected_authors
-)
-
+selected_authors = [author for author, is_selected in author_filters.items() if is_selected]
+commentary_search_results = perform_commentary_search_parallel(commentary_db, search_query, selected_authors)
 
 def display_bible_results(results):
     st.caption("Bible search results:")
