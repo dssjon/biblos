@@ -10,7 +10,11 @@ ABOUT_URL = "Made with <3 by https://www.github.com/dssjon"
 
 # Model names
 EMBEDDING_MODEL_NAME = "hkunlp/instructor-large"
-LLM_MODEL_NAME = "claude-2.1"
+#LLM_MODEL_NAME = "claude-2.1"
+#MAX_TOKENS = 200000
+#LLM_MODEL_NAME = "claude-2.0"
+LLM_MODEL_NAME = "claude-instant-1.2"
+MAX_TOKENS = 100000
 
 # Query Instructions
 DB_QUERY = "Represent the Religious Bible verse text for semantic search:"
@@ -42,7 +46,6 @@ CHURCH_FATHERS = [
 DEFAULT_QUERIES = [
     "What did Jesus say about eternal life?",
     "What is the fruit of the spirit?",
-    "How to handle pain and suffering",
     "What will happen during the end times?",
     "What is love?",
     "What is the Holy Spirit?",
@@ -53,7 +56,6 @@ DEFAULT_QUERIES = [
 ]
 
 # Other constants
-MAX_TOKENS = 200000
 UNSAFE_PASSWORD = "x"
 LLM_ERROR = "No API token found, so LLM support is disabled."
 LLM_NOT_FOUND = "No API token found, so LLM support is disabled."
