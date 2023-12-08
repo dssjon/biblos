@@ -46,9 +46,12 @@ except:
 
 st.title("Biblos: Exploration Tool")
 
-if "initialized" not in st.session_state:
-    st.session_state.search_query = random.choice(list(DEFAULT_QUERIES))
-    st.session_state.initialized = True
+def initialize_session_state(default_queries):
+    if "initialized" not in st.session_state:
+        st.session_state.search_query = random.choice(list(default_queries))
+        st.session_state.initialized = True
+
+initialize_session_state(DEFAULT_QUERIES)
 
 search_query = st.text_input(
     "Semantic search the Bible and Church Fathers:", st.session_state.search_query
@@ -124,102 +127,79 @@ selected_authors = [author for author, is_selected in author_filters.items() if 
 
 commentary_search_results = perform_commentary_search(commentary_db, search_query, selected_authors)
 
-st.caption("Bible search results:")
-cols = st.columns(3)  # Creating three columns for Bible results
-for i, r in enumerate(bible_search_results):
-    with cols[i % 3]:
-        content = r[0].page_content
-        book = r[0].metadata["book"]
-        chapter = r[0].metadata["chapter"]
-        score = r[1]
-        with st.expander(f"**{book}** {chapter}", expanded=True):
-            st.write(f"{content}")
-            st.write(f"**Similarity Score**: {score}")
+def display_bible_results(results):
+    st.caption("Bible search results:")
+    cols = st.columns(3)
+    for i, r in enumerate(results):
+        with cols[i % 3]:
+            content = r[0].page_content
+            book = r[0].metadata[BOOK]
+            chapter = r[0].metadata[CHAPTER]
+            score = r[1]
+            with st.expander(f"**{book}** {chapter}", expanded=True):
+                st.write(f"{content}")
+                st.write(f"**Similarity Score**: {score}")
+
+def display_commentary_results(results):
+    st.caption("Commentary search results:")
+    cols = st.columns(3)
+    results = sorted(results, key=lambda x: x[1], reverse=True)
+    results = [r for r in results if r[1] >= 0.819 and len(r[0].page_content) >= 300]
+    for i, r in enumerate(results):
+        with cols[i % 3]:
+            content, metadata = r[0].page_content, r[0].metadata
+            father_name = metadata[FATHER_NAME]
+            source_title = metadata[SOURCE_TITLE]
+            book = metadata[BOOK]
+            score = r[1]
+            with st.expander(f"**{father_name}**", expanded=True):
+                st.write(f"{content}")
+                source_info = ", ".join(filter(None, [source_title.title() if source_title else None, f"on {book.title()}" if book else None]))
+                if source_info:
+                    st.write(f"**Source**: {source_info}")
+                st.write(f"**Similarity Score**: {score}")
+
+
+display_bible_results(bible_search_results)
+
+def summarize_results(llm, results, summary_prompt):
+    if llm is None:
+        st.error(LLM_ERROR)
+        st.stop()
+    else:
+        with st.spinner("Summarizing..."):
+            #TODO: add metadata to prompt
+            #content, metadata = r[0].page_content, r[0].metadata
+            #father_name = metadata[FATHER_NAME]
+            #source_title = metadata[SOURCE_TITLE]
+            #book = metadata[BOOK]
+            formatted_results = [           
+                f"Source: {r[0].metadata['book']}\nContent: {r[0].page_content}"
+                for r in results
+            ]
+
+            if not formatted_results:
+                st.error("No results found")
+                st.stop()
+
+            llm_query = summary_prompt.format(
+                topic=search_query, content="\n".join(formatted_results)
+            )
+            return llm.predict(llm_query)
 
 if st.button("Summarize"):
-    if llm is None:
-        st.error(LLM_ERROR)
-        st.stop()
-    else:
-        with st.spinner("Summarizing..."):
-            results = []
-            for r in bible_search_results:
-                content = r[0].page_content
-                book = r[0].metadata["book"]
-                chapter = r[0].metadata["chapter"]
-                results.append(f"Source: {book}\nContent: {content}")
+    llm_response = summarize_results(llm, bible_search_results, BIBLE_SUMMARY_PROMPT)
+    if llm_response:
+        st.success(llm_response)
 
-            if not results:
-                st.error("No results found")
-                st.stop()
-
-            all_results = "\n".join(results)
-            llm_query = BIBLE_SUMMARY_PROMPT.format(
-                topic=search_query, passages=all_results
-            )
-            llm_response = llm.predict(llm_query)
-            st.success(llm_response)
 st.divider()
 
-# Display Commentary search results
-st.caption("Commentary search results:")
-cols = st.columns(3)  # Creating three columns for Commentary results
-# sort and filter commentary results by score, excluding results < 0.819
-commentary_search_results = sorted(
-    commentary_search_results, key=lambda x: x[1], reverse=True
-)
-commentary_search_results = [r for r in commentary_search_results if r[1] >= 0.819]
-commentary_search_results = [
-    r for r in commentary_search_results if len(r[0].page_content) >= 300
-]
-for i, r in enumerate(commentary_search_results):
-    with cols[i % 3]:
-        content = r[0].page_content
-        father_name = r[0].metadata[FATHER_NAME]
-        source_title = r[0].metadata[SOURCE_TITLE]
-        book = r[0].metadata[BOOK]
-        score = r[1]
-        with st.expander(f"**{father_name}**", expanded=True):
-            st.write(f"{content}")
-            if book:
-                book = book.title()
-            if source_title:
-                source_title = source_title.title()
-            if not source_title and book:
-                st.write(f"**Source**: Commentary on {book}")
-            if not book and source_title:
-                st.write(f"**Source**: {source_title}")
-            if source_title and book:
-                st.write(f"**Source**: {source_title}, on {book}")
-            st.write(f"**Similarity Score**: {score}")
+display_commentary_results(commentary_search_results)
 
-if st.button("Summarize Commentary"):
-    if llm is None:
-        st.error(LLM_ERROR)
-        st.stop()
-    else:
-        with st.spinner("Summarizing..."):
-            results = []
-            for r in commentary_search_results:
-                content = r[0].page_content
-                father_name = r[0].metadata[FATHER_NAME]
-                source_title = r[0].metadata[SOURCE_TITLE]
-                book = r[0].metadata[BOOK]
-                results.append(
-                    f"Source: {father_name}{book}{source_title}\nContent: {content}"
-                )
-
-            if not results:
-                st.error("No results found")
-                st.stop()
-
-            all_results = "\n".join(results)
-
-            llm_query = COMMENTARY_SUMMARY_PROMPT.format(
-                topic=search_query, commentaries=all_results
-            )
-            llm_response = llm.predict(llm_query)
-            st.success(llm_response)
+if st.button("Summarize commentary"):
+    llm_response = summarize_results(llm, commentary_search_results, COMMENTARY_SUMMARY_PROMPT)
+    if llm_response:
+        st.success(llm_response)
 
 streamlit_analytics.stop_tracking(
     save_to_json=ANALYTICS_JSON_PATH, unsafe_password=UNSAFE_PASSWORD

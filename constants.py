@@ -19,11 +19,11 @@ COMMENTARY_DB_QUERY_INSTRUCTION = "Represent the Religious bible commentary text
 # Prompts
 BIBLE_SUMMARY_PROMPT = """Based on the user's search query, the topic is: {topic}
 Please provide a concise summary of the key points made in the following Bible passages about the topic above, including chapter and verse references. Focus only on the content found in these specific verses. Explain connections between the passages and how they theologically relate to the overarching biblical meta narrative across both Old and New Testaments.
-{passages}"""
+{content}"""
 
 COMMENTARY_SUMMARY_PROMPT = """Based on the user's search query, the topic is: {topic}
 Please provide a concise summary of the key insights and interpretations offered in the following Church Fathers' commentaries on the topic above. Focus only on the content in these specific commentaries, highlighting how they contribute to understanding the scriptural texts. Include the church father and source text.
-{commentaries}"""
+{content}"""
 
 # Church Fathers
 CHURCH_FATHERS = [
@@ -60,4 +60,5 @@ LLM_ERROR = "No API token found, so LLM support is disabled."
 FATHER_NAME = "father_name"
 SOURCE_TITLE = "source_title"
 BOOK = "book"
+CHAPTER = "chapter"
 
