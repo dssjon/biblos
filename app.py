@@ -71,9 +71,9 @@ with st.expander("Search Options"):
     with st.header("Testament"):
         col1, col2 = st.columns([1, 1])
         with col1:
-            ot = st.checkbox("Old Testament", value=True)
+            ot_checkbox = st.checkbox("Old Testament", value=True)
         with col2:
-            nt = st.checkbox("New Testament", value=True)
+            nt_checkbox = st.checkbox("New Testament", value=True)
 
     with st.header("Number of Results"):
         num_verses_to_retrieve = st.slider(
@@ -94,50 +94,35 @@ with st.expander("Search Options"):
         author_filters = create_author_filters(CHURCH_FATHERS, cols)
 
 
-# Build a search filter for the testaments
-testament_filter = {}
-if ot != nt:
-    if ot:
-        testament_filter = {"testament": "OT"}
-    else:
-        testament_filter = {"testament": "NT"}
+def get_selected_bible_filters(ot, nt):
+    if ot != nt:
+        return {"testament": "OT"} if ot else {"testament": "NT"}
+    return {}
 
-# Perform searches on both databases
 bible_search_results = bible_db.similarity_search_with_relevance_scores(
     search_query,
     k=num_verses_to_retrieve,
     score_function="cosine",
-    filter=testament_filter,
+    filter=get_selected_bible_filters(ot_checkbox, nt_checkbox),
 )
 
-selected_authors = [
-    author for author, is_selected in author_filters.items() if is_selected
-]
-
-if len(selected_authors) > 1:
-    author_filter_query = {
-        "$or": [{"father_name": author} for author in selected_authors]
-    }
-elif len(selected_authors) == 1:
-    author_filter_query = {"father_name": selected_authors[0]}
-else:
-    commentary_search_results = []
-
-commentary_search_results = []
-
-if len(selected_authors) > 0:
-    for author in selected_authors:
-        # For each selected author, perform an individual search and get the top result
-        individual_author_results = (
-            commentary_db.similarity_search_with_relevance_scores(
+def perform_commentary_search(commentary_db, search_query, authors):
+    search_results = []
+    if authors:
+        for author in authors:
+            results = commentary_db.similarity_search_with_relevance_scores(
                 search_query,
-                k=1,  # We only want the top result for each author
+                k=1, 
                 score_function="cosine",
                 filter={"father_name": author},
             )
-        )
-        if individual_author_results:
-            commentary_search_results.extend(individual_author_results)
+            if results:
+                search_results.extend(results)
+    return search_results
+
+selected_authors = [author for author, is_selected in author_filters.items() if is_selected]
+
+commentary_search_results = perform_commentary_search(commentary_db, search_query, selected_authors)
 
 st.caption("Bible search results:")
 cols = st.columns(3)  # Creating three columns for Bible results
