@@ -4,17 +4,17 @@ from langchain.embeddings import HuggingFaceInstructEmbeddings
 from langchain.chat_models import ChatAnthropic
 import streamlit_analytics
 import random
+from constants import *
 
-# Start tracking
-streamlit_analytics.start_tracking(load_from_json="./data/analytics.json")
+streamlit_analytics.start_tracking(load_from_json=ANALYTICS_JSON_PATH)
 
 # Set page config
 st.set_page_config(
     layout="wide",
     menu_items={
-        "Get Help": "https://www.github.com/dssjon",
-        "Report a bug": "https://www.github.com/dssjon",
-        "About": "Made with <3 by https://www.github.com/dssjon",
+        "Get Help": HELP_URL,
+        "Report a bug": BUG_REPORT_URL,
+        "About": ABOUT_URL,
     },
 )
 
@@ -22,11 +22,11 @@ st.set_page_config(
 @st.cache_resource
 def setup_bible_db():
     embeddings = HuggingFaceInstructEmbeddings(
-        model_name="hkunlp/instructor-large",
-        query_instruction="Represent the Religious Bible verse text for semantic search:",
+        model_name=HUGGINGFACE_INSTRUCT_MODEL_NAME,
+        query_instruction=BIBLE_DB_QUERY_INSTRUCTION,
     )
     bible_db = Chroma(
-        persist_directory="./data/db",
+        persist_directory=BIBLE_DB_PERSIST_DIRECTORY,
         embedding_function=embeddings,
     )
     return bible_db
@@ -35,11 +35,11 @@ def setup_bible_db():
 @st.cache_resource
 def setup_commentary_db():
     embeddings = HuggingFaceInstructEmbeddings(
-        model_name="hkunlp/instructor-large",
-        query_instruction="Represent the Religious bible commentary text for semantic search:",
+        model_name=HUGGINGFACE_INSTRUCT_MODEL_NAME,
+        query_instruction=COMMENTARY_DB_QUERY_INSTRUCTION,
     )
     commentary_db = Chroma(
-        persist_directory="./data/commentary_db",
+        persist_directory=COMMENTARY_DB_PERSIST_DIRECTORY,
         embedding_function=embeddings,
     )
     return commentary_db
@@ -48,69 +48,23 @@ bible_db, commentary_db = setup_bible_db(), setup_commentary_db()
 
 # Setup LLM
 try:
-    llm = ChatAnthropic(max_tokens=100000, model_name="claude-2.1")
+    llm = ChatAnthropic(max_tokens=MAX_TOKENS, model_name=LLM_MODEL_NAME)
 except:
     st.error('No API token found, so LLM support is disabled.')
     llm = None
 
 st.title("Biblos: Exploration Tool")
 
-prompt = """Based on the user's search query, the topic is: {topic}
-Please provide a concise summary of the key points made in the following Bible passages about the topic above, including chapter and verse references. Focus only on the content found in these specific verses. Explain connections between the passages and how they theologically relate to the overarching biblical meta narrative across both Old and New Testaments.
-{passages}"""
-
-commentary_summary_prompt = """Based on the user's search query, the topic is: {topic}
-Please provide a concise summary of the key insights and interpretations offered in the following Church Fathers' commentaries on the topic above. Focus only on the content in these specific commentaries, highlighting how they contribute to understanding the scriptural texts. Include the church father and source text.
-{commentaries}"""
-
-test_queries = {
-    "What did Jesus say about eternal life?": ["JHN 3", "JHN 17", "MAT 19"],
-    "What is the fruit of the spirit?": ["GAL 5:22-23", "EPH 5:9", "COL 3:12-17"],
-    "How to handle pain and suffering": ["PSA 23", "ISA 41:10", "PHI 4:6-7"],
-    "What will happen during the end times?": ["REV 21", "REV 22", "MAT 24"],
-    "What is love?": ["1CO 13", "JHN 15:12-13", "1JN 4:7-8"],
-    "What is the Holy Spirit?": ["ACT 2", "JHN 14:26", "JHN 16:13-14"],
-    "Understanding the Trinity (Father, Son, and Holy Spirit)": ["MAT 28:19", "JHN 1:1-14", "2CO 13:14"],
-    "The importance of faith": ["HEB 11", "ROM 10:17", "EPH 2:8-9"],
-    "Living a Christian life": ["ROM 12", "GAL 2:20", "COL 3:1-17"],
-    "Forgiveness and reconciliation": ["MAT 6:14-15", "EPH 4:31-32", "COL 3:13"],
-    "The role of prayer": ["MAT 6:5-15", "1TH 5:16-18", "PHI 4:6"],
-    "Understanding salvation": ["EPH 2:8-9", "TIT 3:4-7", "ACT 16:30-31"],
-    "The Beatitudes": ["MAT 5:3-12", "LUK 6:20-23"],
-    "Overcoming temptation": ["1CO 10:13", "JAM 1:12-15", "EPH 6:10-18"],
-    "The role of the church": ["ACT 2:42-47", "HEB 10:24-25", "EPH 4:11-16"],
-    "Christian hope": ["ROM 5:1-5", "HEB 6:19", "1PE 1:3-5"],
-    "Understanding Grace": ["2CO 12:9", "ROM 3:23-24", "TIT 2:11-14"],
-    "Jesus' teachings on serving others": ["MAT 20:26-28", "JHN 13:12-17", "GAL 5:13"],
-    "Biblical perspective on suffering": ["ROM 5:3-5", "2CO 1:3-4", "1PE 4:12-13"]
-}
-
-def get_next_query():
-    return random.choice(list(test_queries.keys()))
-
 if 'initialized' not in st.session_state:
-    st.session_state.search_query = get_next_query()
+    st.session_state.search_query = random.choice(list(DEFAULT_QUERIES))
     st.session_state.initialized = True
 
 search_query = st.text_input("Semantic search the Bible and Church Fathers:", st.session_state.search_query)
 
-church_fathers = [
-    "Augustine of Hippo",
-    "Athanasius of Alexandria",
-    "Basil of Caesarea",
-    "Gregory of Nazianzus",
-    "Gregory of Nyssa",
-    "Cyril of Alexandria",
-    "Irenaeus",
-    "Cyprian",
-    "Origen of Alexandria"
-]
-
-
 # Initialize a dictionary to store the checkbox states
 author_filters = {}
 def update_author_selection(select_all=True):
-    for author in church_fathers:
+    for author in CHURCH_FATHERS:
         st.session_state[author] = select_all
 
 with st.expander("Search Options"):
@@ -139,7 +93,7 @@ with st.expander("Search Options"):
                     update_author_selection(select_all=False)
 
             # Initialize checkboxes with states stored in session_state
-            for i, author in enumerate(church_fathers):
+            for i, author in enumerate(CHURCH_FATHERS):
                 col = cols[(i % 2) + 1]
                 if author not in st.session_state:
                     st.session_state[author] = True  # Default state is checked
@@ -200,7 +154,7 @@ for i, r in enumerate(bible_search_results):
 
 if st.button("Summarize"):
     if llm is None:
-        st.error("No API token found, so LLM support is disabled.")
+        st.error(LLM_ERROR)
         st.stop()
     else:
         with st.spinner("Summarizing..."):
@@ -217,7 +171,7 @@ if st.button("Summarize"):
 
 
             all_results = "\n".join(results)
-            llm_query = prompt.format(topic=search_query, passages=all_results)
+            llm_query = BIBLE_SUMMARY_PROMPT.format(topic=search_query, passages=all_results)
             llm_response = llm.predict(llm_query)
             st.success(llm_response)
 st.divider()
@@ -232,9 +186,9 @@ commentary_search_results = [r for r in commentary_search_results if len(r[0].pa
 for i, r in enumerate(commentary_search_results):
     with cols[i % 3]:
         content = r[0].page_content
-        father_name = r[0].metadata["father_name"]
-        source_title = r[0].metadata["source_title"]
-        book = r[0].metadata["book"]
+        father_name = r[0].metadata[FATHER_NAME]
+        source_title = r[0].metadata[SOURCE_TITLE]
+        book = r[0].metadata[BOOK]
         score = r[1]
         with st.expander(f"**{father_name}**", expanded=True):
             st.write(f"{content}")
@@ -252,16 +206,16 @@ for i, r in enumerate(commentary_search_results):
 
 if st.button("Summarize Commentary"):
     if llm is None:
-        st.error("No API token found, so LLM support is disabled.")
+        st.error(LLM_ERROR)
         st.stop()
     else:
         with st.spinner("Summarizing..."):
             results = []
             for r in commentary_search_results:
                 content = r[0].page_content
-                father_name = r[0].metadata["father_name"]
-                source_title = r[0].metadata["source_title"]
-                book = r[0].metadata["book"]
+                father_name = r[0].metadata[FATHER_NAME]
+                source_title = r[0].metadata[SOURCE_TITLE]
+                book = r[0].metadata[BOOK]
                 results.append(f"Source: {father_name}{book}{source_title}\nContent: {content}")
 
             if not results:
@@ -271,11 +225,10 @@ if st.button("Summarize Commentary"):
 
             all_results = "\n".join(results)
 
-            llm_query = commentary_summary_prompt.format(topic=search_query, commentaries=all_results)
+            llm_query = COMMENTARY_SUMMARY_PROMPT.format(topic=search_query, commentaries=all_results)
             llm_response = llm.predict(llm_query)
             st.success(llm_response)
 
-# Stop tracking
 streamlit_analytics.stop_tracking(
-    save_to_json="./data/analytics.json", unsafe_password="x"
+    save_to_json=ANALYTICS_JSON_PATH, unsafe_password=UNSAFE_PASSWORD
 )
