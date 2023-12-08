@@ -18,33 +18,20 @@ st.set_page_config(
     },
 )
 
-# Setup Bible database
 @st.cache_resource
-def setup_bible_db():
+def setup_db(persist_directory, query_instruction):
     embeddings = HuggingFaceInstructEmbeddings(
         model_name=HUGGINGFACE_INSTRUCT_MODEL_NAME,
-        query_instruction=BIBLE_DB_QUERY_INSTRUCTION,
+        query_instruction=query_instruction,
     )
-    bible_db = Chroma(
-        persist_directory=BIBLE_DB_PERSIST_DIRECTORY,
+    db = Chroma(
+        persist_directory=persist_directory,
         embedding_function=embeddings,
     )
-    return bible_db
+    return db
 
-# Setup Commentary database
-@st.cache_resource
-def setup_commentary_db():
-    embeddings = HuggingFaceInstructEmbeddings(
-        model_name=HUGGINGFACE_INSTRUCT_MODEL_NAME,
-        query_instruction=COMMENTARY_DB_QUERY_INSTRUCTION,
-    )
-    commentary_db = Chroma(
-        persist_directory=COMMENTARY_DB_PERSIST_DIRECTORY,
-        embedding_function=embeddings,
-    )
-    return commentary_db
-
-bible_db, commentary_db = setup_bible_db(), setup_commentary_db()
+bible_db = setup_db(BIBLE_DB_PERSIST_DIRECTORY, BIBLE_DB_QUERY_INSTRUCTION)
+commentary_db = setup_db(COMMENTARY_DB_PERSIST_DIRECTORY, COMMENTARY_DB_QUERY_INSTRUCTION)
 
 # Setup LLM
 try:

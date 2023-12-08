@@ -46,19 +46,10 @@ DEFAULT_QUERIES = [
     "What will happen during the end times?",
     "What is love?",
     "What is the Holy Spirit?",
-    "Understanding the Trinity (Father, Son, and Holy Spirit)",
     "The importance of faith",
     "Living a Christian life",
-    "Forgiveness and reconciliation",
-    "The role of prayer",
     "Understanding salvation",
-    "The Beatitudes",
     "Overcoming temptation",
-    "The role of the church",
-    "Christian hope",
-    "Understanding Grace",
-    "Jesus' teachings on serving others",
-    "Biblical perspective on suffering"
 ]
 
 # Other constants
