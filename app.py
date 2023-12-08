@@ -22,7 +22,7 @@ st.set_page_config(
 @st.cache_resource
 def setup_db(persist_directory, query_instruction):
     embeddings = HuggingFaceInstructEmbeddings(
-        model_name=HUGGINGFACE_INSTRUCT_MODEL_NAME,
+        model_name=EMBEDDING_MODEL_NAME,
         query_instruction=query_instruction,
     )
     db = Chroma(
@@ -32,19 +32,17 @@ def setup_db(persist_directory, query_instruction):
     return db
 
 
-bible_db = setup_db(BIBLE_DB_PERSIST_DIRECTORY, BIBLE_DB_QUERY_INSTRUCTION)
-commentary_db = setup_db(
-    COMMENTARY_DB_PERSIST_DIRECTORY, COMMENTARY_DB_QUERY_INSTRUCTION
-)
+bible_db = setup_db(DB_DIR, DB_QUERY)
+commentary_db = setup_db(COMMENTARY_DB_DIR, COMMENTARY_DB_QUERY)
 
 # Setup LLM
 try:
     llm = ChatAnthropic(max_tokens=MAX_TOKENS, model_name=LLM_MODEL_NAME)
 except:
-    st.error("No API token found, so LLM support is disabled.")
+    st.error(LLM_NOT_FOUND)
     llm = None
 
-st.title("Biblos: Exploration Tool")
+st.title(TITLE)
 
 
 def initialize_session_state(default_queries):
@@ -56,7 +54,7 @@ def initialize_session_state(default_queries):
 initialize_session_state(DEFAULT_QUERIES)
 
 search_query = st.text_input(
-    "Semantic search the Bible and Church Fathers:", st.session_state.search_query
+    SEARCH_LABEL, st.session_state.search_query
 )
 
 
@@ -124,7 +122,7 @@ def get_selected_bible_filters(ot, nt):
 bible_search_results = bible_db.similarity_search_with_relevance_scores(
     search_query,
     k=num_verses_to_retrieve,
-    score_function="cosine",
+    score_function=SCORE_FUNCTION,
     filter=get_selected_bible_filters(ot_checkbox, nt_checkbox),
 )
 
@@ -136,8 +134,8 @@ def perform_commentary_search(commentary_db, search_query, authors):
             results = commentary_db.similarity_search_with_relevance_scores(
                 search_query,
                 k=1,
-                score_function="cosine",
-                filter={"father_name": author},
+                score_function=SCORE_FUNCTION,
+                filter={FATHER_NAME: author},
             )
             if results:
                 search_results.extend(results)
@@ -164,7 +162,7 @@ def display_bible_results(results):
             score = r[1]
             with st.expander(f"**{book}** {chapter}", expanded=True):
                 st.write(f"{content}")
-                st.write(f"**Similarity Score**: {score}")
+                st.write(SCORE_RESULT.format(value=score))
 
 
 def display_commentary_results(results):
@@ -193,7 +191,7 @@ def display_commentary_results(results):
                 )
                 if source_info:
                     st.write(f"**Source**: {source_info}")
-                st.write(f"**Similarity Score**: {score}")
+                st.write(SCORE_RESULT.format(value=score))
 
 
 display_bible_results(bible_search_results)
@@ -217,15 +215,14 @@ def summarize_results(llm, results, summary_prompt):
 
 def format_commentary_results(commentary_results):
     return [
-        f"Source: {r[0].metadata[FATHER_NAME]}{r[0].metadata[BOOK]}{
-            r[0].metadata[SOURCE_TITLE]}\nContent: {r[0].page_content}"
+        f"Source: {r[0].metadata[FATHER_NAME]}{r[0].metadata[BOOK]}{r[0].metadata[SOURCE_TITLE]}\nContent: {r[0].page_content}"
         for r in commentary_results
     ]
 
 
 def format_bible_results(bible_search_results):
     formatted_results = [
-        f"Source: {r[0].metadata['book']}\nContent: {r[0].page_content}"
+        f"Source: {r[0].metadata[BOOK]}\nContent: {r[0].page_content}"
         for r in bible_search_results
     ]
     return formatted_results

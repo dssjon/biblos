@@ -1,7 +1,7 @@
 # File paths
 ANALYTICS_JSON_PATH = "./data/analytics.json"
-BIBLE_DB_PERSIST_DIRECTORY = "./data/db"
-COMMENTARY_DB_PERSIST_DIRECTORY = "./data/commentary_db"
+DB_DIR = "./data/db"
+COMMENTARY_DB_DIR = "./data/commentary_db"
 
 # URLs
 HELP_URL = "https://www.github.com/dssjon"
@@ -9,12 +9,12 @@ BUG_REPORT_URL = "https://www.github.com/dssjon"
 ABOUT_URL = "Made with <3 by https://www.github.com/dssjon"
 
 # Model names
-HUGGINGFACE_INSTRUCT_MODEL_NAME = "hkunlp/instructor-large"
+EMBEDDING_MODEL_NAME = "hkunlp/instructor-large"
 LLM_MODEL_NAME = "claude-2.1"
 
 # Query Instructions
-BIBLE_DB_QUERY_INSTRUCTION = "Represent the Religious Bible verse text for semantic search:"
-COMMENTARY_DB_QUERY_INSTRUCTION = "Represent the Religious bible commentary text for semantic search:"
+DB_QUERY = "Represent the Religious Bible verse text for semantic search:"
+COMMENTARY_DB_QUERY = "Represent the Religious bible commentary text for semantic search:"
 
 # Prompts
 BIBLE_SUMMARY_PROMPT = """Based on the user's search query, the topic is: {topic}
@@ -56,9 +56,14 @@ DEFAULT_QUERIES = [
 MAX_TOKENS = 200000
 UNSAFE_PASSWORD = "x"
 LLM_ERROR = "No API token found, so LLM support is disabled."
+LLM_NOT_FOUND = "No API token found, so LLM support is disabled."
 
 FATHER_NAME = "father_name"
 SOURCE_TITLE = "source_title"
 BOOK = "book"
 CHAPTER = "chapter"
+TITLE = "Biblos: Exploration Tool"
+SEARCH_LABEL = "Semantic search the Bible and Church Fathers:"
+SCORE_RESULT = """**Similarity Score**: {value}"""
+SCORE_FUNCTION = "cosine"
 
