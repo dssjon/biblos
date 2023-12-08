@@ -54,9 +54,7 @@ def initialize_session_state(default_queries):
 
 initialize_session_state(DEFAULT_QUERIES)
 
-search_query = st.text_input(
-    SEARCH_LABEL, st.session_state.search_query
-)
+search_query = st.text_input(SEARCH_LABEL, st.session_state.search_query)
 
 
 def update_author_selection(select_all=True):
@@ -70,8 +68,7 @@ def create_author_filters(church_fathers, columns):
         col = columns[(i % 2) + 1]
         if author not in st.session_state:
             st.session_state[author] = True
-        author_filters[author] = col.checkbox(
-            author, value=st.session_state[author])
+        author_filters[author] = col.checkbox(author, value=st.session_state[author])
     return author_filters
 
 
@@ -143,7 +140,9 @@ def perform_commentary_search_parallel(commentary_db, search_query, authors):
     # Use ThreadPoolExecutor to run searches in parallel
     with ThreadPoolExecutor() as executor:
         # Submit all the search tasks and get a list of futures
-        future_to_author = {executor.submit(search_for_author, author): author for author in authors}
+        future_to_author = {
+            executor.submit(search_for_author, author): author for author in authors
+        }
 
         # As each future completes, extend the search results
         for future in as_completed(future_to_author):
@@ -153,12 +152,11 @@ def perform_commentary_search_parallel(commentary_db, search_query, authors):
                 if results:
                     search_results.extend(results)
             except Exception as exc:
-                print(f'Author search generated an exception for {author}: {exc}')
+                print(f"Author search generated an exception for {author}: {exc}")
 
     return search_results
 
-selected_authors = [author for author, is_selected in author_filters.items() if is_selected]
-commentary_search_results = perform_commentary_search_parallel(commentary_db, search_query, selected_authors)
+
 
 def display_bible_results(results):
     st.caption("Bible search results:")
@@ -178,8 +176,7 @@ def display_commentary_results(results):
     st.caption("Commentary search results:")
     cols = st.columns(3)
     results = sorted(results, key=lambda x: x[1], reverse=True)
-    results = [r for r in results if r[1] >=
-               0.819 and len(r[0].page_content) >= 300]
+    results = [r for r in results if r[1] >= 0.81 and len(r[0].page_content) >= 325]
     for i, r in enumerate(results):
         with cols[i % 3]:
             content, metadata = r[0].page_content, r[0].metadata
@@ -204,7 +201,6 @@ def display_commentary_results(results):
 
 
 display_bible_results(bible_search_results)
-
 
 def summarize_results(llm, results, summary_prompt):
     if llm is None:
@@ -239,23 +235,34 @@ def format_bible_results(bible_search_results):
 
 if st.button("Summarize"):
     formatted_bible_results = format_bible_results(bible_search_results)
-    llm_response = summarize_results(
-        llm, formatted_bible_results, BIBLE_SUMMARY_PROMPT)
+    llm_response = summarize_results(llm, formatted_bible_results, BIBLE_SUMMARY_PROMPT)
     if llm_response:
         st.success(llm_response)
 
 st.divider()
 
-display_commentary_results(commentary_search_results)
+if 'load_commentary_results' not in st.session_state:
+    st.session_state['load_commentary_results'] = False
+if 'commentary_search_results' not in st.session_state:
+    st.session_state['commentary_search_results'] = []
+
+def perform_commentary_search():
+    selected_authors = [author for author, is_selected in author_filters.items() if is_selected]
+    return perform_commentary_search_parallel(commentary_db, search_query, selected_authors)
+
+if st.button('Load Commentary'):
+    st.session_state['load_commentary_results'] = True
+    st.session_state['commentary_search_results'] = perform_commentary_search()
+    display_commentary_results(st.session_state['commentary_search_results'])
 
 if st.button("Summarize commentary"):
-    formatted_commentary_results = format_commentary_results(
-        commentary_search_results)
-    llm_response = summarize_results(
-        llm, formatted_commentary_results, COMMENTARY_SUMMARY_PROMPT
-    )
-    if llm_response:
-        st.success(llm_response)
+    if st.session_state['commentary_search_results']:        
+        formatted_commentary_results = format_commentary_results(st.session_state['commentary_search_results'])
+        llm_response = summarize_results(llm, formatted_commentary_results, COMMENTARY_SUMMARY_PROMPT)
+        if llm_response:
+            st.success(llm_response)
+    else:
+        st.error("No commentary results to summarize. Please load the results first.")
 
 streamlit_analytics.stop_tracking(
     save_to_json=ANALYTICS_JSON_PATH, unsafe_password=UNSAFE_PASSWORD
