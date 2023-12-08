@@ -18,6 +18,7 @@ st.set_page_config(
     },
 )
 
+
 @st.cache_resource
 def setup_db(persist_directory, query_instruction):
     embeddings = HuggingFaceInstructEmbeddings(
@@ -30,29 +31,37 @@ def setup_db(persist_directory, query_instruction):
     )
     return db
 
+
 bible_db = setup_db(BIBLE_DB_PERSIST_DIRECTORY, BIBLE_DB_QUERY_INSTRUCTION)
-commentary_db = setup_db(COMMENTARY_DB_PERSIST_DIRECTORY, COMMENTARY_DB_QUERY_INSTRUCTION)
+commentary_db = setup_db(
+    COMMENTARY_DB_PERSIST_DIRECTORY, COMMENTARY_DB_QUERY_INSTRUCTION
+)
 
 # Setup LLM
 try:
     llm = ChatAnthropic(max_tokens=MAX_TOKENS, model_name=LLM_MODEL_NAME)
 except:
-    st.error('No API token found, so LLM support is disabled.')
+    st.error("No API token found, so LLM support is disabled.")
     llm = None
 
 st.title("Biblos: Exploration Tool")
 
-if 'initialized' not in st.session_state:
+if "initialized" not in st.session_state:
     st.session_state.search_query = random.choice(list(DEFAULT_QUERIES))
     st.session_state.initialized = True
 
-search_query = st.text_input("Semantic search the Bible and Church Fathers:", st.session_state.search_query)
+search_query = st.text_input(
+    "Semantic search the Bible and Church Fathers:", st.session_state.search_query
+)
 
 # Initialize a dictionary to store the checkbox states
 author_filters = {}
+
+
 def update_author_selection(select_all=True):
     for author in CHURCH_FATHERS:
         st.session_state[author] = select_all
+
 
 with st.expander("Search Options"):
     with st.header("Testament"):
@@ -63,28 +72,32 @@ with st.expander("Search Options"):
             nt = st.checkbox("New Testament", value=True)
 
     with st.header("Number of Results"):
-        num_verses_to_retrieve = st.slider("Number of results:", min_value=1, max_value=15, value=3, step=1)
-    
+        num_verses_to_retrieve = st.slider(
+            "Number of results:", min_value=1, max_value=15, value=3, step=1
+        )
+
     st.divider()
 
     with st.header("Authors"):
-            # Create a column layout for authors
-            cols = st.columns(3)
+        # Create a column layout for authors
+        cols = st.columns(3)
 
-            # Add Select All and Deselect All buttons
-            with cols[0]:
-                if st.button("Select All"):
-                    update_author_selection(select_all=True)
-            with cols[0]:
-                if st.button("Deselect All"):
-                    update_author_selection(select_all=False)
+        # Add Select All and Deselect All buttons
+        with cols[0]:
+            if st.button("Select All"):
+                update_author_selection(select_all=True)
+        with cols[0]:
+            if st.button("Deselect All"):
+                update_author_selection(select_all=False)
 
-            # Initialize checkboxes with states stored in session_state
-            for i, author in enumerate(CHURCH_FATHERS):
-                col = cols[(i % 2) + 1]
-                if author not in st.session_state:
-                    st.session_state[author] = True  # Default state is checked
-                author_filters[author] = col.checkbox(author, value=st.session_state[author])
+        # Initialize checkboxes with states stored in session_state
+        for i, author in enumerate(CHURCH_FATHERS):
+            col = cols[(i % 2) + 1]
+            if author not in st.session_state:
+                st.session_state[author] = True  # Default state is checked
+            author_filters[author] = col.checkbox(
+                author, value=st.session_state[author]
+            )
 
 
 # Build a search filter for the testaments
@@ -103,10 +116,14 @@ bible_search_results = bible_db.similarity_search_with_relevance_scores(
     filter=testament_filter,
 )
 
-selected_authors = [author for author, is_selected in author_filters.items() if is_selected]
+selected_authors = [
+    author for author, is_selected in author_filters.items() if is_selected
+]
 
 if len(selected_authors) > 1:
-    author_filter_query = {"$or": [{"father_name": author} for author in selected_authors]}
+    author_filter_query = {
+        "$or": [{"father_name": author} for author in selected_authors]
+    }
 elif len(selected_authors) == 1:
     author_filter_query = {"father_name": selected_authors[0]}
 else:
@@ -115,14 +132,15 @@ else:
 commentary_search_results = []
 
 if len(selected_authors) > 0:
-
     for author in selected_authors:
         # For each selected author, perform an individual search and get the top result
-        individual_author_results = commentary_db.similarity_search_with_relevance_scores(
-            search_query,
-            k=1,  # We only want the top result for each author
-            score_function="cosine",
-            filter={"father_name": author}
+        individual_author_results = (
+            commentary_db.similarity_search_with_relevance_scores(
+                search_query,
+                k=1,  # We only want the top result for each author
+                score_function="cosine",
+                filter={"father_name": author},
+            )
         )
         if individual_author_results:
             commentary_search_results.extend(individual_author_results)
@@ -156,9 +174,10 @@ if st.button("Summarize"):
                 st.error("No results found")
                 st.stop()
 
-
             all_results = "\n".join(results)
-            llm_query = BIBLE_SUMMARY_PROMPT.format(topic=search_query, passages=all_results)
+            llm_query = BIBLE_SUMMARY_PROMPT.format(
+                topic=search_query, passages=all_results
+            )
             llm_response = llm.predict(llm_query)
             st.success(llm_response)
 st.divider()
@@ -167,9 +186,13 @@ st.divider()
 st.caption("Commentary search results:")
 cols = st.columns(3)  # Creating three columns for Commentary results
 # sort and filter commentary results by score, excluding results < 0.819
-commentary_search_results = sorted(commentary_search_results, key=lambda x: x[1], reverse=True)
+commentary_search_results = sorted(
+    commentary_search_results, key=lambda x: x[1], reverse=True
+)
 commentary_search_results = [r for r in commentary_search_results if r[1] >= 0.819]
-commentary_search_results = [r for r in commentary_search_results if len(r[0].page_content) >= 300]
+commentary_search_results = [
+    r for r in commentary_search_results if len(r[0].page_content) >= 300
+]
 for i, r in enumerate(commentary_search_results):
     with cols[i % 3]:
         content = r[0].page_content
@@ -203,16 +226,19 @@ if st.button("Summarize Commentary"):
                 father_name = r[0].metadata[FATHER_NAME]
                 source_title = r[0].metadata[SOURCE_TITLE]
                 book = r[0].metadata[BOOK]
-                results.append(f"Source: {father_name}{book}{source_title}\nContent: {content}")
+                results.append(
+                    f"Source: {father_name}{book}{source_title}\nContent: {content}"
+                )
 
             if not results:
                 st.error("No results found")
                 st.stop()
 
-
             all_results = "\n".join(results)
 
-            llm_query = COMMENTARY_SUMMARY_PROMPT.format(topic=search_query, commentaries=all_results)
+            llm_query = COMMENTARY_SUMMARY_PROMPT.format(
+                topic=search_query, commentaries=all_results
+            )
             llm_response = llm.predict(llm_query)
             st.success(llm_response)
 
