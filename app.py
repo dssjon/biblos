@@ -18,17 +18,6 @@ st.set_page_config(
     },
 )
 
-st.markdown("""
-    <!-- Google tag (gtag.js) -->
-    <script async src="https://www.googletagmanager.com/gtag/js?id=G-L728QPRD2Y"></script>
-    <script>
-    window.dataLayer = window.dataLayer || [];
-    function gtag(){dataLayer.push(arguments);}
-    gtag('js', new Date());
-
-    gtag('config', 'G-L728QPRD2Y');
-    </script>
-   """, unsafe_allow_html=True)
 
 @st.cache_resource
 def setup_db(persist_directory, query_instruction):
