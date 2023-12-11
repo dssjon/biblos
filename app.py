@@ -115,19 +115,21 @@ def display_commentary_results(results):
         source_title = metadata[SOURCE_TITLE]
         book = metadata[BOOK]
         score = r[1]
-        with st.expander(f"**{father_name}**", expanded=True):
+        # with st.expander(f"**{father_name}**", expanded=True):
+        #     st.write(f"{content}")
+        #     source_info = ", ".join(
+        #         filter(
+        #             None,
+        #             [
+        #                 source_title.title() if source_title else None,
+        #                 f"on {book.title()}" if book else None,
+        #             ],
+        #         )
+        #     )
+        #     if source_info:
+        #         st.write(f"**Source**: {source_info}")
+        with st.expander(f"**{source_title.title()}**", expanded=True):
             st.write(f"{content}")
-            source_info = ", ".join(
-                filter(
-                    None,
-                    [
-                        source_title.title() if source_title else None,
-                        f"on {book.title()}" if book else None,
-                    ],
-                )
-            )
-            if source_info:
-                st.write(f"**Source**: {source_info}")
             st.write(SCORE_RESULT.format(value=score))
 
 
