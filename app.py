@@ -1,7 +1,6 @@
 import streamlit as st
 from langchain.vectorstores import Chroma
 from langchain.embeddings import HuggingFaceInstructEmbeddings
-#from langchain.chat_models import ChatAnthropic
 import streamlit_analytics
 import random
 from constants import *
@@ -31,21 +30,29 @@ def setup_db(persist_directory, query_instruction):
     return db
 
 
-bible_db = setup_db(DB_DIR, DB_QUERY)
-commentary_db = setup_db(COMMENTARY_DB_DIR, COMMENTARY_DB_QUERY)
+def perform_commentary_search(commentary_db, search_query):
+    search_results = []
 
-st.title(TITLE)
+    for author in CHURCH_FATHERS:
+        try:
+            results = commentary_db.similarity_search_with_relevance_scores(
+                search_query,
+                k=1,
+                score_function=SCORE_FUNCTION,
+                filter={FATHER_NAME: author},
+            )
+            if results:
+                search_results.extend(results)
+        except Exception as exc:
+            print(f"Author search generated an exception for {author}: {exc}")
+
+    return search_results
 
 
 def initialize_session_state(default_queries):
     if "initialized" not in st.session_state:
         st.session_state.search_query = random.choice(list(default_queries))
         st.session_state.initialized = True
-
-
-initialize_session_state(DEFAULT_QUERIES)
-
-search_query = st.text_input(SEARCH_LABEL, st.session_state.search_query)
 
 
 def update_author_selection(select_all=True):
@@ -72,14 +79,11 @@ def select_options():
     with col3:
         st.session_state.enable_commentary = st.checkbox("Church Fathers", value=False)
     with col4:
-        count = st.slider("Number of Bible Results", min_value=1, max_value=15, value=3, step=1)
+        count = st.slider(
+            "Number of Bible Results", min_value=1, max_value=15, value=4, step=1
+        )
     return ot, nt, count
 
-
-
-with st.expander("Search Options"):
-    
-    ot_checkbox, nt_checkbox, count = select_options()
 
 def get_selected_bible_filters(ot, nt):
     if ot != nt:
@@ -87,38 +91,10 @@ def get_selected_bible_filters(ot, nt):
     return {}
 
 
-bible_search_results = bible_db.similarity_search_with_relevance_scores(
-    search_query,
-    k=count,
-    score_function=SCORE_FUNCTION,
-    filter=get_selected_bible_filters(ot_checkbox, nt_checkbox),
-)
-
-
-def perform_commentary_search(commentary_db, search_query):
-    search_results = []
-
-    for author in CHURCH_FATHERS:
-        try:
-            results = commentary_db.similarity_search_with_relevance_scores(
-                search_query,
-                k=1,
-                score_function=SCORE_FUNCTION,
-                filter={FATHER_NAME: author},
-            )
-            if results:
-                search_results.extend(results)
-        except Exception as exc:
-            print(f"Author search generated an exception for {author}: {exc}")
-
-    return search_results
-
-
-
 def display_bible_results(results):
     # cols = st.columns(3)
     for i, r in enumerate(results):
-    #     with cols[i % 3]:
+        #     with cols[i % 3]:
         content = r[0].page_content
         book = r[0].metadata[BOOK]
         chapter = r[0].metadata[CHAPTER]
@@ -129,11 +105,11 @@ def display_bible_results(results):
 
 
 def display_commentary_results(results):
-    #cols = st.columns(3)
+    # cols = st.columns(3)
     results = sorted(results, key=lambda x: x[1], reverse=True)
     results = [r for r in results if r[1] >= 0.81 and len(r[0].page_content) >= 325]
     for i, r in enumerate(results):
-        #with cols[i % 3]:
+        # with cols[i % 3]:
         content, metadata = r[0].page_content, r[0].metadata
         father_name = metadata[FATHER_NAME]
         source_title = metadata[SOURCE_TITLE]
@@ -154,6 +130,7 @@ def display_commentary_results(results):
                 st.write(f"**Source**: {source_info}")
             st.write(SCORE_RESULT.format(value=score))
 
+
 def format_commentary_results(commentary_results):
     return [
         f"Source: {r[0].metadata[FATHER_NAME]}{r[0].metadata[BOOK]}{r[0].metadata[SOURCE_TITLE]}\nContent: {r[0].page_content}"
@@ -168,13 +145,32 @@ def format_bible_results(bible_search_results):
     ]
     return formatted_results
 
+
+st.title(TITLE)
+
+with st.expander("Search Options"):
+    ot_checkbox, nt_checkbox, count = select_options()
+
+bible_db = setup_db(DB_DIR, DB_QUERY)
+commentary_db = setup_db(COMMENTARY_DB_DIR, COMMENTARY_DB_QUERY)
+
+initialize_session_state(DEFAULT_QUERIES)
+
+search_query = st.text_input(SEARCH_LABEL, st.session_state.search_query)
+
+bible_search_results = bible_db.similarity_search_with_relevance_scores(
+    search_query,
+    k=count,
+    score_function=SCORE_FUNCTION,
+    filter=get_selected_bible_filters(ot_checkbox, nt_checkbox),
+)
+
 display_bible_results(bible_search_results)
 
-
 if st.session_state.enable_commentary:
-   st.divider()
-   commentary_results = perform_commentary_search(commentary_db, search_query)
-   display_commentary_results(commentary_results)
+    st.divider()
+    commentary_results = perform_commentary_search(commentary_db, search_query)
+    display_commentary_results(commentary_results)
 
 streamlit_analytics.stop_tracking(
     save_to_json=ANALYTICS_JSON_PATH, unsafe_password=UNSAFE_PASSWORD
