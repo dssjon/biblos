@@ -5,6 +5,7 @@ import streamlit_analytics
 import random
 from constants import *
 import xml.etree.ElementTree as ET
+import os 
 
 streamlit_analytics.start_tracking(load_from_json=ANALYTICS_JSON_PATH)
 
@@ -77,7 +78,7 @@ def create_author_filters(church_fathers, columns):
 
 
 def select_options():
-    col1, col2, col3, col4 = st.columns([1, 1, 1, 1])
+    col1, col2, col3, col4, col5 = st.columns([1, 1, 1, 1, 1])
     with col1:
         ot = st.checkbox("Old Testament", value=True)
     with col2:
@@ -85,10 +86,12 @@ def select_options():
     with col3:
         st.session_state.enable_commentary = st.checkbox("Church Fathers", value=False)
     with col4:
+        gk = st.checkbox("Greek NT", value=True)
+    with col5:
         count = st.slider(
             "Number of Bible Results", min_value=1, max_value=15, value=4, step=1
         )
-    return ot, nt, count
+    return ot, nt, count, gk
 
 
 def get_selected_bible_filters(ot, nt):
@@ -103,23 +106,90 @@ def highlight_text(full_text, search_text):
     return highlighted_text
 
 
-def display_bible_results(results, bible_xml):
+def search_greek_texts(greek_texts, book_code, chapter=None):
+    paragraph = ""
+    target_text = greek_texts.get(book_code, [])
+    for line in target_text:
+        if chapter:
+            if line.startswith(f"{book_code} {chapter}:"):
+                # Extract and append the text part after the tab character
+                text_part = line.split('\t', 1)[1] if '\t' in line else ""
+                paragraph += text_part + " "
+    return paragraph.strip()
+
+def display_bible_results(results, bible_xml, greek_texts, nt_book_mapping):
     for i, r in enumerate(results):
         content = r[0].page_content
         book = r[0].metadata[BOOK]
         chapter = r[0].metadata[CHAPTER]
         score = r[1]
 
-        with st.expander(f"**{book}** {chapter}", expanded=True):
-            query = f".//v[@b='{book}'][@c='{chapter}']"
-            full_chapter_content = ""
-            for verse in bible_xml.findall(query):
-                text = verse.text
-                full_chapter_content += f"{text}\n"
+        col1, col2 = st.columns(2)
 
-            highlighted_content = highlight_text(full_chapter_content, content)
-            st.markdown(highlighted_content, unsafe_allow_html=True)
-            st.write(SCORE_RESULT.format(value=score))
+        with col1:
+            with st.expander(f"**{book} {chapter}**", expanded=True):
+                query = f".//v[@b='{book}'][@c='{chapter}']"
+                full_chapter_content = ""
+                for verse in bible_xml.findall(query):
+                    text = verse.text
+                    full_chapter_content += f"{text}\n"
+
+                highlighted_content = highlight_text(full_chapter_content, content)
+                st.markdown(highlighted_content, unsafe_allow_html=True)
+                st.write(f"Score: {score}")
+        if gk:
+            with col2:
+                with st.expander(f"**{book} {chapter}**", expanded=True):
+                    greek_book_code = nt_book_mapping.get(book, "")
+                    if greek_book_code:
+                        greek_paragraph = search_greek_texts(greek_texts, greek_book_code, chapter)
+                        if greek_paragraph:
+                            st.write(greek_paragraph)
+
+@st.cache_resource
+def get_nt_book_mapping():
+    nt_book_mapping = {
+        "1CO": "1Cor",
+        "1PE": "1Pet",
+        "1TI": "1Tim",
+        "2JN": "2John",
+        "2TH": "2Thess",
+        "3JN": "3John",
+        "COL": "Col",
+        "GAL": "Gal",
+        "JAS": "Jas",
+        "JUD": "Jude",
+        "MRK": "Mark",
+        "PHP": "Phil",
+        "REV": "Rev",
+        "TIT": "Titus",
+        "1JN": "1John",
+        "1TH": "1Thess",
+        "2CO": "2Cor",
+        "2PE": "2Pet",
+        "2TI": "2Tim",
+        "ACT": "Acts",
+        "EPH": "Eph",
+        "HEB": "Heb",
+        "JHN": "John",
+        "LUK": "Luke",
+        "MAT": "Matt",
+        "PHM": "Phlm",
+        "ROM": "Rom"
+    }
+    return nt_book_mapping
+
+def load_greek_texts(directory):
+    greek_texts = {}
+    for filename in os.listdir(directory):
+        if filename.endswith(".txt"):
+            book_code = filename.split('.')[0]
+            with open(os.path.join(directory, filename), 'r', encoding='utf-8') as file:
+                greek_texts[book_code] = file.readlines()
+    return greek_texts
+
+
+greek_texts = load_greek_texts('./data/sblgnt')
 
 def display_commentary_results(results):
     # cols = st.columns(3)
@@ -132,19 +202,6 @@ def display_commentary_results(results):
         source_title = metadata[SOURCE_TITLE]
         book = metadata[BOOK]
         score = r[1]
-        # with st.expander(f"**{father_name}**", expanded=True):
-        #     st.write(f"{content}")
-        #     source_info = ", ".join(
-        #         filter(
-        #             None,
-        #             [
-        #                 source_title.title() if source_title else None,
-        #                 f"on {book.title()}" if book else None,
-        #             ],
-        #         )
-        #     )
-        #     if source_info:
-        #         st.write(f"**Source**: {source_info}")
         with st.expander(f"**{source_title.title()}**", expanded=True):
             st.write(f"{content}")
             st.write(SCORE_RESULT.format(value=score))
@@ -168,7 +225,7 @@ def format_bible_results(bible_search_results):
 st.title(TITLE)
 
 with st.expander("Search Options"):
-    ot_checkbox, nt_checkbox, count = select_options()
+    ot_checkbox, nt_checkbox, count, gk = select_options()
 
 bible_db = setup_db(DB_DIR, DB_QUERY)
 commentary_db = setup_db(COMMENTARY_DB_DIR, COMMENTARY_DB_QUERY)
@@ -186,7 +243,7 @@ bible_search_results = bible_db.similarity_search_with_relevance_scores(
 )
 
 
-display_bible_results(bible_search_results, bible_xml)
+display_bible_results(bible_search_results, bible_xml, greek_texts, get_nt_book_mapping())
 
 
 if st.session_state.enable_commentary:
