@@ -4,6 +4,7 @@ from langchain.embeddings import HuggingFaceInstructEmbeddings
 import streamlit_analytics
 import random
 from constants import *
+import xml.etree.ElementTree as ET
 
 streamlit_analytics.start_tracking(load_from_json=ANALYTICS_JSON_PATH)
 
@@ -29,6 +30,11 @@ def setup_db(persist_directory, query_instruction):
     )
     return db
 
+@st.cache_resource
+def load_bible_xml(input_file):
+    tree = ET.parse(input_file)
+    root = tree.getroot()
+    return root
 
 def perform_commentary_search(commentary_db, search_query):
     search_results = []
@@ -91,18 +97,29 @@ def get_selected_bible_filters(ot, nt):
     return {}
 
 
-def display_bible_results(results):
-    # cols = st.columns(3)
+
+def highlight_text(full_text, search_text):
+    highlighted_text = full_text.replace(search_text, f"<span style='background-color:gold; color:black;'>{search_text}</span>")
+    return highlighted_text
+
+
+def display_bible_results(results, bible_xml):
     for i, r in enumerate(results):
-        #     with cols[i % 3]:
         content = r[0].page_content
         book = r[0].metadata[BOOK]
         chapter = r[0].metadata[CHAPTER]
         score = r[1]
-        with st.expander(f"**{book}** {chapter}", expanded=True):
-            st.write(f"{content}")
-            st.write(SCORE_RESULT.format(value=score))
 
+        with st.expander(f"**{book}** {chapter}", expanded=True):
+            query = f".//v[@b='{book}'][@c='{chapter}']"
+            full_chapter_content = ""
+            for verse in bible_xml.findall(query):
+                text = verse.text
+                full_chapter_content += f"{text}\n"
+
+            highlighted_content = highlight_text(full_chapter_content, content)
+            st.markdown(highlighted_content, unsafe_allow_html=True)
+            st.write(SCORE_RESULT.format(value=score))
 
 def display_commentary_results(results):
     # cols = st.columns(3)
@@ -155,6 +172,7 @@ with st.expander("Search Options"):
 
 bible_db = setup_db(DB_DIR, DB_QUERY)
 commentary_db = setup_db(COMMENTARY_DB_DIR, COMMENTARY_DB_QUERY)
+bible_xml = load_bible_xml(BIBLE_XML_FILE)
 
 initialize_session_state(DEFAULT_QUERIES)
 
@@ -167,7 +185,9 @@ bible_search_results = bible_db.similarity_search_with_relevance_scores(
     filter=get_selected_bible_filters(ot_checkbox, nt_checkbox),
 )
 
-display_bible_results(bible_search_results)
+
+display_bible_results(bible_search_results, bible_xml)
+
 
 if st.session_state.enable_commentary:
     st.divider()
