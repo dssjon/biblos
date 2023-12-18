@@ -2,7 +2,7 @@
 ANALYTICS_JSON_PATH = "./data/analytics.json"
 DB_DIR = "./data/db"
 COMMENTARY_DB_DIR = "./data/commentary_db"
-
+BIBLE_XML_FILE = "./data/engwebp_vpl.xml"
 # URLs
 HELP_URL = "https://www.github.com/dssjon"
 BUG_REPORT_URL = "https://www.github.com/dssjon"
