@@ -3,6 +3,8 @@ ANALYTICS_JSON_PATH = "./data/analytics.json"
 DB_DIR = "./data/db"
 COMMENTARY_DB_DIR = "./data/commentary_db"
 BIBLE_XML_FILE = "./data/engwebp_vpl.xml"
+LEXICON_XML_FILE = "./data/dodson.xml"
+
 # URLs
 HELP_URL = "https://www.github.com/dssjon"
 BUG_REPORT_URL = "https://www.github.com/dssjon"
@@ -45,14 +47,10 @@ CHURCH_FATHERS = [
 # Test Queries
 DEFAULT_QUERIES = [
     "What did Jesus say about eternal life?",
-    "What is the fruit of the spirit?",
+    "refreshing presence of the Lord",
     "What will happen during the end times?",
-    "What is love?",
     "What is the Holy Spirit?",
-    "The importance of faith",
-    "Living a Christian life",
-    "Understanding salvation",
-    "Overcoming temptation",
+    "What is God's love for us",
 ]
 
 # Other constants
@@ -65,7 +63,7 @@ SOURCE_TITLE = "source_title"
 BOOK = "book"
 CHAPTER = "chapter"
 TITLE = "Biblos: Exploration Tool"
-SEARCH_LABEL = "Enter query:"
+SEARCH_LABEL = "Search:"
 SCORE_RESULT = """**Similarity Score**: {value}"""
 SCORE_FUNCTION = "cosine"
 

@@ -6,6 +6,7 @@ import random
 from constants import *
 import xml.etree.ElementTree as ET
 import os 
+import re
 
 streamlit_analytics.start_tracking(load_from_json=ANALYTICS_JSON_PATH)
 
@@ -36,6 +37,39 @@ def load_bible_xml(input_file):
     tree = ET.parse(input_file)
     root = tree.getroot()
     return root
+
+@st.cache_resource
+def load_lexicon_xml(input_file):
+    lexicon = {}
+    # Parse the XML file
+    tree = ET.parse(input_file)
+    root = tree.getroot()
+
+    ns = {'tei': 'http://www.crosswire.org/2008/TEIOSIS/namespace'}
+
+    # Iterate over each 'entry' element
+    for entry in root.findall('tei:entry', ns):
+        # Extract the 'n' attribute from the 'entry' element
+        entry_id = entry.get('n')
+
+        # Find the 'orth' element
+        orth_element = entry.find('tei:orth', ns)
+        orth_text = orth_element.text if orth_element is not None else None
+
+        # Find all 'def' elements and extract their text and role
+        defs = {}
+        for def_element in entry.findall('tei:def', ns):
+            role = def_element.get('role')
+            defs[role] = def_element.text
+
+        # Store the extracted data in the lexicon dictionary
+        lexicon[entry_id] = {
+            'orth': orth_text,
+            'definitions': defs
+        }
+
+    return lexicon
+
 
 def perform_commentary_search(commentary_db, search_query):
     search_results = []
@@ -112,10 +146,17 @@ def search_greek_texts(greek_texts, book_code, chapter=None):
     for line in target_text:
         if chapter:
             if line.startswith(f"{book_code} {chapter}:"):
-                # Extract and append the text part after the tab character
                 text_part = line.split('\t', 1)[1] if '\t' in line else ""
                 paragraph += text_part + " "
     return paragraph.strip()
+
+
+def extract_greek_word_from_result(result):
+    greek_word_regex = r'[\u0370-\u03FF\u1F00-\u1FFF]+' 
+    matches = re.findall(greek_word_regex, result)
+    if matches:
+        return matches 
+    return ""
 
 def display_bible_results(results, bible_xml, greek_texts, nt_book_mapping):
     for i, r in enumerate(results):
@@ -124,10 +165,10 @@ def display_bible_results(results, bible_xml, greek_texts, nt_book_mapping):
         chapter = r[0].metadata[CHAPTER]
         score = r[1]
 
-        col1, col2 = st.columns(2)
+        col1, col2, col3 = st.columns(3)
 
         with col1:
-            with st.expander(f"**{book} {chapter}**", expanded=True):
+            with st.expander(f"**{book} {chapter}** - WEB Translation", expanded=True):
                 query = f".//v[@b='{book}'][@c='{chapter}']"
                 full_chapter_content = ""
                 for verse in bible_xml.findall(query):
@@ -138,13 +179,23 @@ def display_bible_results(results, bible_xml, greek_texts, nt_book_mapping):
                 st.markdown(highlighted_content, unsafe_allow_html=True)
                 st.write(f"Score: {score}")
         if gk:
-            with col2:
-                with st.expander(f"**{book} {chapter}**", expanded=True):
+            with col2:                
+                with st.expander(f"**{book} {chapter}** - SBL Greek New Testament", expanded=True):
                     greek_book_code = nt_book_mapping.get(book, "")
                     if greek_book_code:
                         greek_paragraph = search_greek_texts(greek_texts, greek_book_code, chapter)
                         if greek_paragraph:
                             st.write(greek_paragraph)
+            with col3:
+                with st.expander(f"**Dodson Greek Lexicon**", expanded=True):
+                    greek_words = extract_greek_word_from_result(greek_paragraph)
+                    lexicon_results = set()
+                    for greek_word in greek_words:
+                        definition = search_lexicon(greek_word)
+                        if definition:
+                            lexicon_results.add(f"**{greek_word}**: {definition}")
+                    for definition in lexicon_results:
+                        st.write(definition)
 
 @st.cache_resource
 def get_nt_book_mapping():
@@ -190,6 +241,14 @@ def load_greek_texts(directory):
 
 
 greek_texts = load_greek_texts('./data/sblgnt')
+dodson_lexicon = load_lexicon_xml(LEXICON_XML_FILE)
+
+def search_lexicon(greek_word):
+    for entry_id, entry_data in dodson_lexicon.items():
+        if entry_data['orth'].startswith(greek_word):
+            return entry_data['definitions'].get('full', None)
+    return None
+
 
 def display_commentary_results(results):
     # cols = st.columns(3)
