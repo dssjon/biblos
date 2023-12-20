@@ -120,7 +120,7 @@ def select_options():
     with col3:
         st.session_state.enable_commentary = st.checkbox("Church Fathers", value=False)
     with col4:
-        gk = st.checkbox("Greek NT", value=True)
+        gk = st.checkbox("Greek NT", value=False)
     with col5:
         count = st.slider(
             "Number of Bible Results", min_value=1, max_value=15, value=4, step=1
@@ -165,37 +165,32 @@ def display_bible_results(results, bible_xml, greek_texts, nt_book_mapping):
         chapter = r[0].metadata[CHAPTER]
         score = r[1]
 
-        col1, col2, col3 = st.columns(3)
+        with st.expander(f"**{book} {chapter}**", expanded=True):
+            query = f".//v[@b='{book}'][@c='{chapter}']"
+            full_chapter_content = ""
+            for verse in bible_xml.findall(query):
+                text = verse.text
+                full_chapter_content += f"{text}\n"
 
-        with col1:
-            with st.expander(f"**{book} {chapter}** - WEB Translation", expanded=True):
-                query = f".//v[@b='{book}'][@c='{chapter}']"
-                full_chapter_content = ""
-                for verse in bible_xml.findall(query):
-                    text = verse.text
-                    full_chapter_content += f"{text}\n"
-
-                highlighted_content = highlight_text(full_chapter_content, content)
-                st.markdown(highlighted_content, unsafe_allow_html=True)
-                st.write(f"Score: {score}")
+            highlighted_content = highlight_text(full_chapter_content, content)
+            st.markdown(highlighted_content, unsafe_allow_html=True)
+            st.write(f"Score: {score}")
         if gk:
-            with col2:                
-                with st.expander(f"**{book} {chapter}** - SBL Greek New Testament", expanded=True):
-                    greek_book_code = nt_book_mapping.get(book, "")
-                    if greek_book_code:
-                        greek_paragraph = search_greek_texts(greek_texts, greek_book_code, chapter)
-                        if greek_paragraph:
-                            st.write(greek_paragraph)
-            with col3:
-                with st.expander(f"**Dodson Greek Lexicon**", expanded=True):
-                    greek_words = extract_greek_word_from_result(greek_paragraph)
-                    lexicon_results = set()
-                    for greek_word in greek_words:
-                        definition = search_lexicon(greek_word)
-                        if definition:
-                            lexicon_results.add(f"**{greek_word}**: {definition}")
-                    for definition in lexicon_results:
-                        st.write(definition)
+            with st.expander(f"**{book} {chapter}** - SBL Greek New Testament", expanded=True):
+                greek_book_code = nt_book_mapping.get(book, "")
+                if greek_book_code:
+                    greek_paragraph = search_greek_texts(greek_texts, greek_book_code, chapter)
+                    if greek_paragraph:
+                        st.write(greek_paragraph)
+            with st.expander(f"**Dodson Greek Lexicon**", expanded=True):
+                greek_words = extract_greek_word_from_result(greek_paragraph)
+                lexicon_results = set()
+                for greek_word in greek_words:
+                    definition = search_lexicon(greek_word)
+                    if definition:
+                        lexicon_results.add(f"**{greek_word}**: {definition}")
+                for definition in lexicon_results:
+                    st.write(definition)
 
 @st.cache_resource
 def get_nt_book_mapping():
@@ -253,16 +248,21 @@ def search_lexicon(greek_word):
 def display_commentary_results(results):
     # cols = st.columns(3)
     results = sorted(results, key=lambda x: x[1], reverse=True)
-    results = [r for r in results if r[1] >= 0.81 and len(r[0].page_content) >= 325]
+    results = [r for r in results if r[1] >= 0.81 and len(r[0].page_content) >= 450]
     for i, r in enumerate(results):
         # with cols[i % 3]:
         content, metadata = r[0].page_content, r[0].metadata
         father_name = metadata[FATHER_NAME]
         source_title = metadata[SOURCE_TITLE]
         book = metadata[BOOK]
+        append_to_author_name = metadata[APPEND_TO_AUTHOR_NAME]
         score = r[1]
-        with st.expander(f"**{source_title.title()}**", expanded=True):
+
+        with st.expander(f"**{father_name.title()}**", expanded=True):
             st.write(f"{content}")
+            if append_to_author_name:
+                st.write(f"{append_to_author_name.title()}")
+            st.write(f"**{source_title.title()}**")
             st.write(SCORE_RESULT.format(value=score))
 
 
