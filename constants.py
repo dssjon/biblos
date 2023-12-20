@@ -47,10 +47,10 @@ CHURCH_FATHERS = [
 # Test Queries
 DEFAULT_QUERIES = [
     "What did Jesus say about eternal life?",
-    "refreshing presence of the Lord",
+    "Divine agape and  God's love for humanity",
     "What will happen during the end times?",
-    "What is the Holy Spirit?",
-    "What is God's love for us",
+    "What is the work and nature of the Holy Spirit in our life?",
+    "Experiencing God's presence: Comfort and renewal in the Christian life",
 ]
 
 # Other constants

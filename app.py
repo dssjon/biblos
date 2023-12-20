@@ -248,7 +248,7 @@ def search_lexicon(greek_word):
 def display_commentary_results(results):
     # cols = st.columns(3)
     results = sorted(results, key=lambda x: x[1], reverse=True)
-    results = [r for r in results if r[1] >= 0.81 and len(r[0].page_content) >= 350]
+    results = [r for r in results if r[1] >= 0.81 and len(r[0].page_content) >= 450]
     for i, r in enumerate(results):
         # with cols[i % 3]:
         content, metadata = r[0].page_content, r[0].metadata
