@@ -59,6 +59,7 @@ LLM_ERROR = "No API token found, so LLM support is disabled."
 LLM_NOT_FOUND = "No API token found, so LLM support is disabled."
 
 FATHER_NAME = "father_name"
+APPEND_TO_AUTHOR_NAME = "append_to_author_name="
 SOURCE_TITLE = "source_title"
 BOOK = "book"
 CHAPTER = "chapter"

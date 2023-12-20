@@ -10,7 +10,7 @@ from langchain.text_splitter import CharacterTextSplitter, RecursiveCharacterTex
 parser = argparse.ArgumentParser()
 parser.add_argument("-db", "--db_file", default="./data.sqlite", help="path to SQLite database file")
 parser.add_argument("-m", "--model_name", default="hkunlp/instructor-large", help="name of the HuggingFace model to use")
-parser.add_argument("-o", "--output_dir", default="./output_db", help="path to output directory")
+parser.add_argument("-o", "--output_dir", default="./commentary_db", help="path to output directory")
 args = parser.parse_args()
 
 # Update variables with user input
@@ -62,13 +62,14 @@ except sqlite3.Error as error:
 documents = []
 for row in rows:
     id, father_name, file_name, append_to_author_name, ts, book, location_start, location_end, txt, source_url, source_title = row
-    
+
     # skipping smaller commentaries
     if len(txt) < 1000:
         continue
     
     if source_title == None or source_title == "":
         continue
+
     doc = Document(page_content=txt)
     doc.metadata = {
         "id": id,
@@ -77,7 +78,8 @@ for row in rows:
         "location_start": location_start,
         "location_end": location_end,
         "source_url": source_url,
-        "source_title": source_title
+        "source_title": source_title,
+        "append_to_author_name=": append_to_author_name,
     }
     
     documents.append(doc)
@@ -88,7 +90,7 @@ connection.close()
 
 #Split into chunks
 chunk_size = 1500
-chunk_overlap = 0
+chunk_overlap = 100
 text_splitter = RecursiveCharacterTextSplitter(
     #separator="\n\n",
     chunk_size=chunk_size,
