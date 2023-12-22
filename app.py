@@ -112,20 +112,22 @@ def create_author_filters(church_fathers, columns):
 
 
 def select_options():
-    col1, col2, col3, col4, col5 = st.columns([1, 1, 1, 1, 1])
+    col1, col2, col3, col4, col5, col6 = st.columns([1, 1, 1, 1, 1, 1])
     with col1:
         ot = st.checkbox("Old Testament", value=True)
     with col2:
         nt = st.checkbox("New Testament", value=True)
     with col3:
-        st.session_state.enable_commentary = st.checkbox("Church Fathers", value=False)
+        fc = st.checkbox("Full Chapter", value=True)
     with col4:
-        gk = st.checkbox("Greek NT", value=False)
+        st.session_state.enable_commentary = st.checkbox("Church Fathers", value=False)
     with col5:
+        gk = st.checkbox("Greek NT", value=False)
+    with col6:
         count = st.slider(
             "Number of Bible Results", min_value=1, max_value=15, value=4, step=1
         )
-    return ot, nt, count, gk
+    return ot, nt, fc, count, gk
 
 
 def get_selected_bible_filters(ot, nt):
@@ -165,16 +167,22 @@ def display_bible_results(results, bible_xml, greek_texts, nt_book_mapping):
         chapter = r[0].metadata[CHAPTER]
         score = r[1]
 
-        with st.expander(f"**{book} {chapter}**", expanded=True):
-            query = f".//v[@b='{book}'][@c='{chapter}']"
-            full_chapter_content = ""
-            for verse in bible_xml.findall(query):
-                text = verse.text
-                full_chapter_content += f"{text}\n"
+        if fc:
+            with st.expander(f"**{book} {chapter}**", expanded=True):
+                query = f".//v[@b='{book}'][@c='{chapter}']"
+                full_chapter_content = ""
+                for verse in bible_xml.findall(query):
+                    text = verse.text
+                    full_chapter_content += f"{text}\n"
 
-            highlighted_content = highlight_text(full_chapter_content, content)
-            st.markdown(highlighted_content, unsafe_allow_html=True)
-            st.write(f"Score: {score}")
+                highlighted_content = highlight_text(full_chapter_content, content)
+                st.markdown(highlighted_content, unsafe_allow_html=True)
+                st.write(f"Score: {score}")
+        else:
+            with st.expander(f"**{book} {chapter}**", expanded=True):
+                st.write(f"{content}")
+                st.write(SCORE_RESULT.format(value=score))
+                
         if gk:
             with st.expander(f"**{book} {chapter}** - SBL Greek New Testament", expanded=True):
                 greek_book_code = nt_book_mapping.get(book, "")
@@ -284,7 +292,7 @@ def format_bible_results(bible_search_results):
 st.title(TITLE)
 
 with st.expander("Search Options"):
-    ot_checkbox, nt_checkbox, count, gk = select_options()
+    ot_checkbox, nt_checkbox, fc, count, gk = select_options()
 
 bible_db = setup_db(DB_DIR, DB_QUERY)
 commentary_db = setup_db(COMMENTARY_DB_DIR, COMMENTARY_DB_QUERY)
