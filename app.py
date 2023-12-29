@@ -118,7 +118,7 @@ def select_options():
     with col2:
         nt = st.checkbox("New Testament", value=True)
     with col3:
-        fc = st.checkbox("Full Chapter", value=True)
+        fc = st.checkbox("Full Chapter", value=False)
     with col4:
         st.session_state.enable_commentary = st.checkbox("Church Fathers", value=False)
     with col5:
