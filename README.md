@@ -66,4 +66,4 @@ Biblos leverages the following open source projects:
 - [Chroma](https://github.com/chroma-core/chroma) - Vector similarity search
 - [Anthropic](https://www.anthropic.com/) - Claude summarization model
 - [instructor-large Embeddings](https://huggingface.co/hkunlp/instructor-large) - Text embeddings
-- [Streamlit](https://streamlit.io/) - Web UI
+- [Streamlit](https://streamlit.io/) - Python Web UI
