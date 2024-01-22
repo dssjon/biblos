@@ -1,7 +1,7 @@
 import streamlit as st
-from langchain.vectorstores import Chroma
-from langchain.embeddings import HuggingFaceInstructEmbeddings
-from langchain.chat_models import ChatAnthropic
+from langchain_community.vectorstores import Chroma
+from langchain_community.embeddings import HuggingFaceInstructEmbeddings
+from langchain_community.chat_models import ChatAnthropic
 import streamlit_analytics
 import random
 from constants import *
@@ -88,7 +88,7 @@ def perform_commentary_search(commentary_db, search_query):
             results = commentary_db.similarity_search_with_relevance_scores(
                 search_query,
                 k=1,
-                score_function=SCORE_FUNCTION,
+                #score_function=SCORE_FUNCTION,
                 filter={FATHER_NAME: author},
             )
             if results:
@@ -315,7 +315,7 @@ search_query = st.text_input(SEARCH_LABEL, st.session_state.search_query)
 bible_search_results = bible_db.similarity_search_with_relevance_scores(
     search_query,
     k=count,
-    score_function=SCORE_FUNCTION,
+    #score_function=SCORE_FUNCTION,
     filter=get_selected_bible_filters(ot_checkbox, nt_checkbox),
 )
 
@@ -345,8 +345,8 @@ if st.button("Summarize"):
 
                 all_results = "\n".join(results)
                 llm_query = prompt.format(topic=search_query, passages=all_results)
-                llm_response = llm.predict(llm_query)
-                st.success(llm_response)
+                llm_response = llm.invoke(llm_query)
+                st.success(llm_response.content)
 
 if st.session_state.enable_commentary:
     st.divider()
