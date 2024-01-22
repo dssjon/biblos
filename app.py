@@ -1,6 +1,7 @@
 import streamlit as st
 from langchain.vectorstores import Chroma
 from langchain.embeddings import HuggingFaceInstructEmbeddings
+from langchain.chat_models import ChatAnthropic
 import streamlit_analytics
 import random
 from constants import *
@@ -19,6 +20,14 @@ st.set_page_config(
     },
 )
 
+@st.cache_resource
+def setup_llm():
+    try:
+        llm = ChatAnthropic(max_tokens=100000, model_name="claude-2.1")
+    except:
+        print(f'No API token found, so LLM support is disabled.')
+        llm = None
+    return llm
 
 @st.cache_resource
 def setup_db(persist_directory, query_instruction):
@@ -294,6 +303,7 @@ st.title(TITLE)
 with st.expander("Search Options"):
     ot_checkbox, nt_checkbox, fc, count, gk = select_options()
 
+llm = setup_llm()
 bible_db = setup_db(DB_DIR, DB_QUERY)
 commentary_db = setup_db(COMMENTARY_DB_DIR, COMMENTARY_DB_QUERY)
 bible_xml = load_bible_xml(BIBLE_XML_FILE)
@@ -312,6 +322,31 @@ bible_search_results = bible_db.similarity_search_with_relevance_scores(
 
 display_bible_results(bible_search_results, bible_xml, greek_texts, get_nt_book_mapping())
 
+prompt = """
+ From a Reformed Christian perspective, please provide a concise summary of key points based on the users semantic bible search results. The topic they want to summarize is {topic} and the search result passages are: {passages}.
+"""
+
+if st.button("Summarize"):
+        if llm is None:
+            st.error("No API token found, so LLM support is disabled.")
+            st.stop()
+        else:
+            with st.spinner("Summarizing text..."):
+                results = []
+                for r in bible_search_results:
+                    content = r[0].page_content
+                    metadata = r[0].metadata["book"]
+                    chapter = r[0].metadata["chapter"]
+                    results.append(f"Source: {metadata}\nContent: {content}")
+
+                if results == "":
+                    st.error("No results found")
+                    st.stop()
+
+                all_results = "\n".join(results)
+                llm_query = prompt.format(topic=search_query, passages=all_results)
+                llm_response = llm.predict(llm_query)
+                st.success(llm_response)
 
 if st.session_state.enable_commentary:
     st.divider()
