@@ -5,3 +5,4 @@ anthropic
 sentence_transformers
 streamlit-analytics
 InstructorEmbedding
+langchain_community
