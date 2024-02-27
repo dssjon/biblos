@@ -1,8 +1,8 @@
-streamlit
 langchain
-chromadb
-anthropic
-sentence_transformers
-streamlit-analytics
-InstructorEmbedding
 langchain_community
+streamlit==1.30.0
+chromadb==0.4.22
+anthropic==0.10.0
+sentence_transformers==2.2.2
+git+https://github.com/dssjon/streamlit-analytics.git@main#egg=streamlit-analytics
+InstructorEmbedding==1.0.1

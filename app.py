@@ -134,7 +134,7 @@ def select_options():
         gk = st.checkbox("Greek NT", value=False)
     with col6:
         count = st.slider(
-            "Number of Bible Results", min_value=1, max_value=15, value=4, step=1
+            "Number of Bible Results", min_value=1, max_value=15, value=2, step=1
         )
     return ot, nt, fc, count, gk
 
@@ -322,11 +322,8 @@ bible_search_results = bible_db.similarity_search_with_relevance_scores(
 
 display_bible_results(bible_search_results, bible_xml, greek_texts, get_nt_book_mapping())
 
-prompt = """
- From a Reformed Christian perspective, please provide a concise summary of key points based on the users semantic bible search results. The topic they want to summarize is {topic} and the search result passages are: {passages}.
-"""
 
-if st.button("Summarize"):
+if st.button("Summary"):
         if llm is None:
             st.error("No API token found, so LLM support is disabled.")
             st.stop()
@@ -344,7 +341,7 @@ if st.button("Summarize"):
                     st.stop()
 
                 all_results = "\n".join(results)
-                llm_query = prompt.format(topic=search_query, passages=all_results)
+                llm_query = BIBLE_SUMMARY_PROMPT.format(topic=search_query, passages=all_results)
                 llm_response = llm.invoke(llm_query)
                 st.success(llm_response.content)
 
