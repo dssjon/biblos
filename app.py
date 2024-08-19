@@ -134,7 +134,7 @@ def select_options():
         gk = st.checkbox("Greek NT", value=False)
     with col6:
         count = st.slider(
-            "Number of Bible Results", min_value=1, max_value=15, value=2, step=1
+            "Number of Bible Results", min_value=1, max_value=8, value=2, step=1
         )
     return ot, nt, fc, count, gk
 
