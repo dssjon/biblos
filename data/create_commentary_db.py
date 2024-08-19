@@ -49,6 +49,7 @@ try:
     query = "SELECT id, father_name, file_name, append_to_author_name, ts, book, location_start, location_end, txt, source_url, source_title FROM commentary"
     query = query + " WHERE father_name IN ('" + "','".join(top_authors) + "')"
     #query += " AND book IN ('" + "','".join(new_testament_books) + "')"
+    query += " AND append_to_author_name NOT LIKE '%As Quoted By Aquinas%'"
 
     print("running query", query)
     cursor.execute(query)

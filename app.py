@@ -99,20 +99,17 @@ def load_lexicon_xml(input_file):
 def perform_commentary_search(commentary_db, search_query):
     search_results = []
 
-    #for author in CHURCH_FATHERS:
-        #try:
-    results = commentary_db.similarity_search_with_relevance_scores(
-        search_query,
-        k=3,
-        #filter={FATHER_NAME: author},
-    )
-    # if results:
-    #     search_results.extend(results)
-    # if result and score >= 85
-    if results:
-        search_results.extend(results)
-        #except Exception as exc:
-            #print(f"Author search generated an exception for {author}: {exc}")
+    for author in CHURCH_FATHERS:
+        try:
+            results = commentary_db.similarity_search_with_relevance_scores(
+                search_query,
+                k=1,
+                filter={FATHER_NAME: author},
+            )
+            if results and results[0][1] >= 0.80:
+                search_results.extend(results)
+        except Exception as exc:
+            print(f"Author search generated an exception for {author}: {exc}")
 
     return search_results
 
