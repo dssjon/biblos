@@ -169,16 +169,34 @@ def extract_greek_word_from_result(result):
         return matches 
     return ""
 
+BIBLE_BOOK_NAMES = {
+    "GEN": "Genesis", "EXO": "Exodus", "LEV": "Leviticus", "NUM": "Numbers", "DEU": "Deuteronomy",
+    "JOS": "Joshua", "JDG": "Judges", "RUT": "Ruth", "1SA": "1 Samuel", "2SA": "2 Samuel",
+    "1KI": "1 Kings", "2KI": "2 Kings", "1CH": "1 Chronicles", "2CH": "2 Chronicles", "EZR": "Ezra",
+    "NEH": "Nehemiah", "EST": "Esther", "JOB": "Job", "PSA": "Psalms", "PRO": "Proverbs",
+    "ECC": "Ecclesiastes", "SNG": "Song of Solomon", "ISA": "Isaiah", "JER": "Jeremiah", "LAM": "Lamentations",
+    "EZK": "Ezekiel", "DAN": "Daniel", "HOS": "Hosea", "JOL": "Joel", "AMO": "Amos",
+    "OBA": "Obadiah", "JON": "Jonah", "MIC": "Micah", "NAM": "Nahum", "HAB": "Habakkuk",
+    "ZEP": "Zephaniah", "HAG": "Haggai", "ZEC": "Zechariah", "MAL": "Malachi",
+    "MAT": "Matthew", "MRK": "Mark", "LUK": "Luke", "JHN": "John", "ACT": "Acts",
+    "ROM": "Romans", "1CO": "1 Corinthians", "2CO": "2 Corinthians", "GAL": "Galatians", "EPH": "Ephesians",
+    "PHP": "Philippians", "COL": "Colossians", "1TH": "1 Thessalonians", "2TH": "2 Thessalonians", "1TI": "1 Timothy",
+    "2TI": "2 Timothy", "TIT": "Titus", "PHM": "Philemon", "HEB": "Hebrews", "JAS": "James",
+    "1PE": "1 Peter", "2PE": "2 Peter", "1JN": "1 John", "2JN": "2 John", "3JN": "3 John",
+    "JUD": "Jude", "REV": "Revelation"
+}
+
 def display_bible_results(results, bible_xml, greek_texts, nt_book_mapping):
     for i, r in enumerate(results):
         content = r[0].page_content
-        book = r[0].metadata[BOOK]
+        book_abbr = r[0].metadata[BOOK]
+        book = BIBLE_BOOK_NAMES.get(book_abbr, book_abbr)  # Use full name if available, otherwise use abbreviation
         chapter = r[0].metadata[CHAPTER]
         score = r[1]
 
         if fc:
             with st.expander(f"**{book} {chapter}**", expanded=True):
-                query = f".//v[@b='{book}'][@c='{chapter}']"
+                query = f".//v[@b='{book_abbr}'][@c='{chapter}']"
                 full_chapter_content = ""
                 for verse in bible_xml.findall(query):
                     text = verse.text
@@ -193,21 +211,31 @@ def display_bible_results(results, bible_xml, greek_texts, nt_book_mapping):
                 st.write(SCORE_RESULT.format(value=round(score, 4)))
                 
         if gk:
+            greek_paragraph = ""
             with st.expander(f"**{book} {chapter}** - SBL Greek New Testament", expanded=True):
-                greek_book_code = nt_book_mapping.get(book, "")
+                greek_book_code = nt_book_mapping.get(book_abbr, "")
                 if greek_book_code:
                     greek_paragraph = search_greek_texts(greek_texts, greek_book_code, chapter)
                     if greek_paragraph:
                         st.write(greek_paragraph)
-            with st.expander(f"**Dodson Greek Lexicon**", expanded=True):
-                greek_words = extract_greek_word_from_result(greek_paragraph)
-                lexicon_results = set()
-                for greek_word in greek_words:
-                    definition = search_lexicon(greek_word)
-                    if definition:
-                        lexicon_results.add(f"**{greek_word}**: {definition}")
-                for definition in lexicon_results:
-                    st.write(definition)
+                    else:
+                        st.write("No Greek text available for this passage.")
+                else:
+                    st.write("This book is not part of the Greek New Testament.")
+            
+            if greek_paragraph:
+                with st.expander(f"**Dodson Greek Lexicon**", expanded=True):
+                    greek_words = extract_greek_word_from_result(greek_paragraph)
+                    lexicon_results = set()
+                    for greek_word in greek_words:
+                        definition = search_lexicon(greek_word)
+                        if definition:
+                            lexicon_results.add(f"**{greek_word}**: {definition}")
+                    if lexicon_results:
+                        for definition in lexicon_results:
+                            st.write(definition)
+                    else:
+                        st.write("No definitions found for the Greek words in this passage.")
 
 @st.cache_resource
 def get_nt_book_mapping():
@@ -291,7 +319,7 @@ def format_commentary_results(commentary_results):
 
 def format_bible_results(bible_search_results):
     formatted_results = [
-        f"Source: {r[0].metadata[BOOK]}\nContent: {r[0].page_content}"
+        f"Source: {BIBLE_BOOK_NAMES.get(r[0].metadata[BOOK], r[0].metadata[BOOK])}\nContent: {r[0].page_content}"
         for r in bible_search_results
     ]
     return formatted_results
@@ -323,26 +351,27 @@ display_bible_results(bible_search_results, bible_xml, greek_texts, get_nt_book_
 
 
 if st.button("Summary"):
-        if llm is None:
-            st.error("No API token found, so LLM support is disabled.")
-            st.stop()
-        else:
-            with st.spinner("Summarizing text..."):
-                results = []
-                for r in bible_search_results:
-                    content = r[0].page_content
-                    metadata = r[0].metadata["book"]
-                    chapter = r[0].metadata["chapter"]
-                    results.append(f"Source: {metadata}\nContent: {content}")
+    if llm is None:
+        st.error("No API token found, so LLM support is disabled.")
+        st.stop()
+    else:
+        with st.spinner("Summarizing text..."):
+            results = []
+            for r in bible_search_results:
+                content = r[0].page_content
+                book_abbr = r[0].metadata[BOOK]
+                book = BIBLE_BOOK_NAMES.get(book_abbr, book_abbr)
+                chapter = r[0].metadata[CHAPTER]
+                results.append(f"Source: {book} {chapter}\nContent: {content}")
 
-                if results == "":
-                    st.error("No results found")
-                    st.stop()
+            if not results:
+                st.error("No results found")
+                st.stop()
 
-                all_results = "\n".join(results)
-                llm_query = BIBLE_SUMMARY_PROMPT.format(topic=search_query, passages=all_results)
-                llm_response = llm.invoke(llm_query)
-                st.success(llm_response.content)
+            all_results = "\n".join(results)
+            llm_query = BIBLE_SUMMARY_PROMPT.format(topic=search_query, passages=all_results)
+            llm_response = llm.invoke(llm_query)
+            st.success(llm_response.content)
 
 if st.session_state.enable_commentary:
     st.divider()
