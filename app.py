@@ -20,6 +20,45 @@ st.set_page_config(
         "About": ABOUT_URL,
     },
 )
+def select_options():
+    col1, col2, col3, col4, col5, col6 = st.columns([1, 1, 1, 1, 1, 1])
+    with col1:
+        ot = st.checkbox("Old Testament", value=True)
+    with col2:
+        nt = st.checkbox("New Testament", value=True)
+    with col3:
+        fc = st.checkbox("Full Chapter", value=False)
+    with col4:
+        st.session_state.enable_commentary = st.checkbox("Church Fathers", value=False)
+    with col5:
+        gk = st.checkbox("Greek NT", value=False)
+    with col6:
+        count = st.slider(
+            "Number of Bible Results", min_value=1, max_value=8, value=2, step=1
+        )
+    return ot, nt, fc, count, gk
+
+st.markdown("""
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0rem; padding-bottom: 0rem; flex-wrap: wrap;">
+        <h1 style="font-size: 2rem; font-weight: 800; color: #3b3b3b; margin-bottom: 0rem;">
+            Explore the Bible
+        </h1>
+        <div style="display: flex; align-items: center; gap: 1rem; margin-bottom: 0rem; padding-bottom: 0rem;">
+            <p style="font-size: 1.125rem; color: #6b7280; font-style: italic; text-align: right; margin-bottom: 0rem; padding-bottom: 0rem;">
+                Semantic Search & Summary Insights
+            </p>
+            <a href="https://www.github.com/dssjon" target="_blank" rel="noopener noreferrer" style="color: #6b7280; text-decoration: none;">
+                <svg height="24" aria-hidden="true" viewBox="0 0 16 16" version="1.1" width="24" data-view-component="true" class="octicon octicon-mark-github v-align-middle">
+                    <path fill-rule="evenodd" d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"></path>
+                </svg>
+            </a>
+        </div>
+    </div>
+""", unsafe_allow_html=True)
+
+
+with st.expander("Search Options"):
+    ot_checkbox, nt_checkbox, fc, count, gk = select_options()
 
 API_KEY = os.getenv("ANTHROPIC_API_KEY")
 
@@ -131,23 +170,6 @@ def create_author_filters(church_fathers, columns):
         author_filters[author] = col.checkbox(author, value=st.session_state[author])
     return author_filters
 
-def select_options():
-    col1, col2, col3, col4, col5, col6 = st.columns([1, 1, 1, 1, 1, 1])
-    with col1:
-        ot = st.checkbox("Old Testament", value=True)
-    with col2:
-        nt = st.checkbox("New Testament", value=True)
-    with col3:
-        fc = st.checkbox("Full Chapter", value=False)
-    with col4:
-        st.session_state.enable_commentary = st.checkbox("Church Fathers", value=False)
-    with col5:
-        gk = st.checkbox("Greek NT", value=False)
-    with col6:
-        count = st.slider(
-            "Number of Bible Results", min_value=1, max_value=8, value=2, step=1
-        )
-    return ot, nt, fc, count, gk
 
 def get_selected_bible_filters(ot, nt):
     if ot != nt:
@@ -303,10 +325,7 @@ def format_bible_results(bible_search_results):
     ]
     return formatted_results
 
-st.title(TITLE)
 
-with st.expander("Search Options"):
-    ot_checkbox, nt_checkbox, fc, count, gk = select_options()
 
 llm = setup_llm()
 bible_db = setup_db(DB_DIR, DB_QUERY)
