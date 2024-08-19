@@ -186,11 +186,11 @@ def display_bible_results(results, bible_xml, greek_texts, nt_book_mapping):
 
                 highlighted_content = highlight_text(full_chapter_content, content)
                 st.markdown(highlighted_content, unsafe_allow_html=True)
-                st.write(f"Score: {score}")
+                st.write(SCORE_RESULT.format(value=round(score, 4)))
         else:
             with st.expander(f"**{book} {chapter}**", expanded=True):
                 st.write(f"{content}")
-                st.write(SCORE_RESULT.format(value=score))
+                st.write(SCORE_RESULT.format(value=round(score, 4)))
                 
         if gk:
             with st.expander(f"**{book} {chapter}** - SBL Greek New Testament", expanded=True):
@@ -275,12 +275,11 @@ def display_commentary_results(results):
         append_to_author_name = metadata[APPEND_TO_AUTHOR_NAME]
         score = r[1]
 
-        with st.expander(f"**{father_name.title()}**", expanded=True):
+        with st.expander(f"**{father_name.title()}** - {source_title.title()}", expanded=True):
             st.write(f"{content}")
             if append_to_author_name:
                 st.write(f"{append_to_author_name.title()}")
-            st.write(f"**{source_title.title()}**")
-            st.write(SCORE_RESULT.format(value=score))
+            st.write(SCORE_RESULT.format(value=round(score, 4)))
 
 
 def format_commentary_results(commentary_results):
