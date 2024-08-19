@@ -15,15 +15,16 @@ EMBEDDING_MODEL_NAME = "hkunlp/instructor-large"
 #LLM_MODEL_NAME = "claude-2.1"
 #MAX_TOKENS = 200000
 #LLM_MODEL_NAME = "claude-2.0"
-LLM_MODEL_NAME = "claude-instant-1.2"
-MAX_TOKENS = 100000
+API_URL = "https://api.anthropic.com/v1/messages"
+LLM_MODEL_NAME = "claude-3-5-sonnet-20240620"
+MAX_TOKENS = 500
 
 # Query Instructions
 DB_QUERY = "Represent the Religious Bible verse text for semantic search:"
 COMMENTARY_DB_QUERY = "Represent the Religious bible commentary text for semantic search:"
 
 # Prompts
-BIBLE_SUMMARY_PROMPT = """
+BIBLE_SUMMARY_PROMPT_ORIG = """
 The topic for analysis is {topic}. Here are the Bible passages: {passages}.  Please provide the following:
 
 * **Key Insights:** Summarize the main points made about the topic within these specific verses.
@@ -31,6 +32,15 @@ The topic for analysis is {topic}. Here are the Bible passages: {passages}.  Ple
 * **Theological Significance:** How do these insights connect to the broader story of God's redemption (as seen in the gospel message) across the Old and New Testaments?
 * **Practical Application:** What actions or changes in understanding might be inspired by reflecting on these passages together?
 """
+
+
+BIBLE_SUMMARY_PROMPT = """You are a concise Biblical scholar assisting a seeker with their query: "{topic}"  Given these relevant passages: {passages} Provide a brief, focused response on: 
+
+1. **Key Insight:** The central theme or teaching from these verses related to the query. 
+
+Keep your response under 200 words, grounded in conservative theology.
+"""
+
 
 COMMENTARY_SUMMARY_PROMPT = """Based on the user's search query, the topic is: {topic}
 Please provide a concise summary of the key insights and interpretations offered in the following Church Fathers' commentaries on the topic above. Focus only on the content in these specific commentaries, highlighting how they contribute to understanding the scriptural texts. Include the church father and source text.

@@ -8,6 +8,7 @@ from constants import *
 import xml.etree.ElementTree as ET
 import os 
 import re
+import requests
 
 streamlit_analytics.start_tracking(load_from_json=ANALYTICS_JSON_PATH)
 
@@ -20,14 +21,38 @@ st.set_page_config(
     },
 )
 
+API_KEY = os.getenv("ANTHROPIC_API_KEY")
+
 @st.cache_resource
 def setup_llm():
-    try:
-        llm = ChatAnthropic(max_tokens=100000, model_name="claude-2.1")
-    except:
-        print(f'No API token found, so LLM support is disabled.')
-        llm = None
-    return llm
+    if not API_KEY:
+        print("No API token found, so LLM support is disabled.")
+        return None
+    
+    return {
+        "api_url": API_URL,
+        "headers": {
+            "x-api-key": API_KEY,
+            "content-type": "application/json",
+            "anthropic-version": "2023-06-01"
+        },
+        "model": LLM_MODEL_NAME,
+    }
+
+def invoke_llm(llm, prompt):
+    data = {
+        "model": llm["model"],
+        "max_tokens": 500,
+        "messages": [{"role": "user", "content": prompt}]
+    }
+    
+    response = requests.post(llm["api_url"], headers=llm["headers"], json=data)
+    if response.status_code == 200:
+        return response.json()["content"][0]["text"]
+    else:
+        print(f"Error: {response.status_code}, {response.text}")
+        return None
+
 
 @st.cache_resource
 def setup_db(persist_directory, query_instruction):
@@ -370,8 +395,12 @@ if st.button("Summary"):
 
             all_results = "\n".join(results)
             llm_query = BIBLE_SUMMARY_PROMPT.format(topic=search_query, passages=all_results)
-            llm_response = llm.invoke(llm_query)
-            st.success(llm_response.content)
+            llm_response = invoke_llm(llm, llm_query)
+            if llm_response:
+                st.success(llm_response)
+            else:
+                st.error("Failed to get a response from the LLM.")
+
 
 if st.session_state.enable_commentary:
     st.divider()
