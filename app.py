@@ -39,12 +39,12 @@ def select_options():
     return ot, nt, fc, count, gk
 
 st.markdown("""
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0rem; padding-bottom: 0rem; flex-wrap: wrap;">
-        <h1 style="font-size: 2rem; font-weight: 800; color: #3b3b3b; margin-bottom: 0rem;">
+    <div class="title-container" style="display: flex; justify-content: space-between; align-items: center; margin-top: 0rem; padding-top: 0rem; margin-bottom: 0rem; padding-bottom: 0rem; flex-wrap: wrap;">
+        <h1 style="font-size: 2rem; font-weight: 800; color: #3b3b3b; margin-top: 0rem; padding-top: 0rem; margin-bottom: 0rem;">
             Explore the Bible
         </h1>
-        <div style="display: flex; align-items: center; gap: 1rem; margin-bottom: 0rem; padding-bottom: 0rem;">
-            <p style="font-size: 1.125rem; color: #6b7280; font-style: italic; text-align: right; margin-bottom: 0rem; padding-bottom: 0rem;">
+        <div class="search-label-container" style="display: flex; align-items: center; gap: 1rem; margin-bottom: 0rem; padding-bottom: 0.5rem;">
+            <p style="font-size: 1.125rem; color: #6b7280; font-style: italic; text-align: right; margin-bottom: 0rem;">
                 Semantic Search & Summary Insights
             </p>
             <a href="https://www.github.com/dssjon" target="_blank" rel="noopener noreferrer" style="color: #6b7280; text-decoration: none;">
@@ -55,6 +55,7 @@ st.markdown("""
         </div>
     </div>
 """, unsafe_allow_html=True)
+
 
 
 with st.expander("Search Options"):
