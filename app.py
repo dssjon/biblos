@@ -42,7 +42,7 @@ def setup_llm():
 def invoke_llm(llm, prompt):
     data = {
         "model": llm["model"],
-        "max_tokens": 500,
+        "max_tokens": 1024,
         "messages": [{"role": "user", "content": prompt}]
     }
     
@@ -52,7 +52,6 @@ def invoke_llm(llm, prompt):
     else:
         print(f"Error: {response.status_code}, {response.text}")
         return None
-
 
 @st.cache_resource
 def setup_db(persist_directory, query_instruction):
@@ -75,28 +74,21 @@ def load_bible_xml(input_file):
 @st.cache_resource
 def load_lexicon_xml(input_file):
     lexicon = {}
-    # Parse the XML file
     tree = ET.parse(input_file)
     root = tree.getroot()
 
     ns = {'tei': 'http://www.crosswire.org/2008/TEIOSIS/namespace'}
 
-    # Iterate over each 'entry' element
     for entry in root.findall('tei:entry', ns):
-        # Extract the 'n' attribute from the 'entry' element
         entry_id = entry.get('n')
-
-        # Find the 'orth' element
         orth_element = entry.find('tei:orth', ns)
         orth_text = orth_element.text if orth_element is not None else None
 
-        # Find all 'def' elements and extract their text and role
         defs = {}
         for def_element in entry.findall('tei:def', ns):
             role = def_element.get('role')
             defs[role] = def_element.text
 
-        # Store the extracted data in the lexicon dictionary
         lexicon[entry_id] = {
             'orth': orth_text,
             'definitions': defs
@@ -104,36 +96,34 @@ def load_lexicon_xml(input_file):
 
     return lexicon
 
-
 def perform_commentary_search(commentary_db, search_query):
     search_results = []
 
-    for author in CHURCH_FATHERS:
-        try:
-            results = commentary_db.similarity_search_with_relevance_scores(
-                search_query,
-                k=1,
-                #score_function=SCORE_FUNCTION,
-                filter={FATHER_NAME: author},
-            )
-            if results:
-                search_results.extend(results)
-        except Exception as exc:
-            print(f"Author search generated an exception for {author}: {exc}")
+    #for author in CHURCH_FATHERS:
+        #try:
+    results = commentary_db.similarity_search_with_relevance_scores(
+        search_query,
+        k=3,
+        #filter={FATHER_NAME: author},
+    )
+    # if results:
+    #     search_results.extend(results)
+    # if result and score >= 85
+    if results:
+        search_results.extend(results)
+        #except Exception as exc:
+            #print(f"Author search generated an exception for {author}: {exc}")
 
     return search_results
-
 
 def initialize_session_state(default_queries):
     if "initialized" not in st.session_state:
         st.session_state.search_query = random.choice(list(default_queries))
         st.session_state.initialized = True
 
-
 def update_author_selection(select_all=True):
     for author in CHURCH_FATHERS:
         st.session_state[author] = select_all
-
 
 def create_author_filters(church_fathers, columns):
     author_filters = {}
@@ -143,7 +133,6 @@ def create_author_filters(church_fathers, columns):
             st.session_state[author] = True
         author_filters[author] = col.checkbox(author, value=st.session_state[author])
     return author_filters
-
 
 def select_options():
     col1, col2, col3, col4, col5, col6 = st.columns([1, 1, 1, 1, 1, 1])
@@ -163,18 +152,14 @@ def select_options():
         )
     return ot, nt, fc, count, gk
 
-
 def get_selected_bible_filters(ot, nt):
     if ot != nt:
         return {"testament": "OT"} if ot else {"testament": "NT"}
     return {}
 
-
-
 def highlight_text(full_text, search_text):
     highlighted_text = full_text.replace(search_text, f"<span style='background-color:gold; color:black;'>{search_text}</span>")
     return highlighted_text
-
 
 def search_greek_texts(greek_texts, book_code, chapter=None):
     paragraph = ""
@@ -185,7 +170,6 @@ def search_greek_texts(greek_texts, book_code, chapter=None):
                 text_part = line.split('\t', 1)[1] if '\t' in line else ""
                 paragraph += text_part + " "
     return paragraph.strip()
-
 
 def extract_greek_word_from_result(result):
     greek_word_regex = r'[\u0370-\u03FF\u1F00-\u1FFF]+' 
@@ -215,7 +199,7 @@ def display_bible_results(results, bible_xml, greek_texts, nt_book_mapping):
     for i, r in enumerate(results):
         content = r[0].page_content
         book_abbr = r[0].metadata[BOOK]
-        book = BIBLE_BOOK_NAMES.get(book_abbr, book_abbr)  # Use full name if available, otherwise use abbreviation
+        book = BIBLE_BOOK_NAMES.get(book_abbr, book_abbr)
         chapter = r[0].metadata[CHAPTER]
         score = r[1]
 
@@ -265,33 +249,12 @@ def display_bible_results(results, bible_xml, greek_texts, nt_book_mapping):
 @st.cache_resource
 def get_nt_book_mapping():
     nt_book_mapping = {
-        "1CO": "1Cor",
-        "1PE": "1Pet",
-        "1TI": "1Tim",
-        "2JN": "2John",
-        "2TH": "2Thess",
-        "3JN": "3John",
-        "COL": "Col",
-        "GAL": "Gal",
-        "JAS": "Jas",
-        "JUD": "Jude",
-        "MRK": "Mark",
-        "PHP": "Phil",
-        "REV": "Rev",
-        "TIT": "Titus",
-        "1JN": "1John",
-        "1TH": "1Thess",
-        "2CO": "2Cor",
-        "2PE": "2Pet",
-        "2TI": "2Tim",
-        "ACT": "Acts",
-        "EPH": "Eph",
-        "HEB": "Heb",
-        "JHN": "John",
-        "LUK": "Luke",
-        "MAT": "Matt",
-        "PHM": "Phlm",
-        "ROM": "Rom"
+        "1CO": "1Cor", "1PE": "1Pet", "1TI": "1Tim", "2JN": "2John", "2TH": "2Thess",
+        "3JN": "3John", "COL": "Col", "GAL": "Gal", "JAS": "Jas", "JUD": "Jude",
+        "MRK": "Mark", "PHP": "Phil", "REV": "Rev", "TIT": "Titus", "1JN": "1John",
+        "1TH": "1Thess", "2CO": "2Cor", "2PE": "2Pet", "2TI": "2Tim", "ACT": "Acts",
+        "EPH": "Eph", "HEB": "Heb", "JHN": "John", "LUK": "Luke", "MAT": "Matt",
+        "PHM": "Phlm", "ROM": "Rom"
     }
     return nt_book_mapping
 
@@ -304,7 +267,6 @@ def load_greek_texts(directory):
                 greek_texts[book_code] = file.readlines()
     return greek_texts
 
-
 greek_texts = load_greek_texts('./data/sblgnt')
 dodson_lexicon = load_lexicon_xml(LEXICON_XML_FILE)
 
@@ -314,13 +276,10 @@ def search_lexicon(greek_word):
             return entry_data['definitions'].get('full', None)
     return None
 
-
 def display_commentary_results(results):
-    # cols = st.columns(3)
     results = sorted(results, key=lambda x: x[1], reverse=True)
     results = [r for r in results if r[1] >= 0.81 and len(r[0].page_content) >= 450]
     for i, r in enumerate(results):
-        # with cols[i % 3]:
         content, metadata = r[0].page_content, r[0].metadata
         father_name = metadata[FATHER_NAME]
         source_title = metadata[SOURCE_TITLE]
@@ -334,13 +293,11 @@ def display_commentary_results(results):
                 st.write(f"{append_to_author_name.title()}")
             st.write(SCORE_RESULT.format(value=round(score, 4)))
 
-
 def format_commentary_results(commentary_results):
     return [
-        f"Source: {r[0].metadata[FATHER_NAME]}{r[0].metadata[BOOK]}{r[0].metadata[SOURCE_TITLE]}\nContent: {r[0].page_content}"
+        f"Source: {r[0].metadata[FATHER_NAME]} - {r[0].metadata[SOURCE_TITLE]}\nContent: {r[0].page_content}"
         for r in commentary_results
     ]
-
 
 def format_bible_results(bible_search_results):
     formatted_results = [
@@ -348,7 +305,6 @@ def format_bible_results(bible_search_results):
         for r in bible_search_results
     ]
     return formatted_results
-
 
 st.title(TITLE)
 
@@ -367,28 +323,18 @@ search_query = st.text_input(SEARCH_LABEL, st.session_state.search_query)
 bible_search_results = bible_db.similarity_search_with_relevance_scores(
     search_query,
     k=count,
-    #score_function=SCORE_FUNCTION,
     filter=get_selected_bible_filters(ot_checkbox, nt_checkbox),
 )
 
-
 display_bible_results(bible_search_results, bible_xml, greek_texts, get_nt_book_mapping())
 
-
-if st.button("Summary"):
+if st.button("Summarize"):
     if llm is None:
         st.error("No API token found, so LLM support is disabled.")
         st.stop()
     else:
-        with st.spinner("Summarizing text..."):
-            results = []
-            for r in bible_search_results:
-                content = r[0].page_content
-                book_abbr = r[0].metadata[BOOK]
-                book = BIBLE_BOOK_NAMES.get(book_abbr, book_abbr)
-                chapter = r[0].metadata[CHAPTER]
-                results.append(f"Source: {book} {chapter}\nContent: {content}")
-
+        with st.spinner("Summarizing passages..."):
+            results = format_bible_results(bible_search_results)
             if not results:
                 st.error("No results found")
                 st.stop()
@@ -401,11 +347,29 @@ if st.button("Summary"):
             else:
                 st.error("Failed to get a response from the LLM.")
 
-
 if st.session_state.enable_commentary:
     st.divider()
     commentary_results = perform_commentary_search(commentary_db, search_query)
     display_commentary_results(commentary_results)
+    
+    if st.button("Summarize Church Fathers"):
+        if llm is None:
+            st.error("No API token found, so LLM support is disabled.")
+            st.stop()
+        else:
+            with st.spinner("Summarizing Church Fathers'..."):
+                formatted_results = format_commentary_results(commentary_results)
+                if not formatted_results:
+                    st.error("No Church Fathers' commentaries found")
+                    st.stop()
+
+                all_results = "\n".join(formatted_results)
+                llm_query = COMMENTARY_SUMMARY_PROMPT.format(topic=search_query, content=all_results)
+                llm_response = invoke_llm(llm, llm_query)
+                if llm_response:
+                    st.success(llm_response)
+                else:
+                    st.error("Failed to get a response from the LLM.")
 
 streamlit_analytics.stop_tracking(
     save_to_json=ANALYTICS_JSON_PATH, unsafe_password=UNSAFE_PASSWORD

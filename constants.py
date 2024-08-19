@@ -42,9 +42,10 @@ Keep your response under 200 words, grounded in conservative theology.
 """
 
 
-COMMENTARY_SUMMARY_PROMPT = """Based on the user's search query, the topic is: {topic}
-Please provide a concise summary of the key insights and interpretations offered in the following Church Fathers' commentaries on the topic above. Focus only on the content in these specific commentaries, highlighting how they contribute to understanding the scriptural texts. Include the church father and source text.
-{content}"""
+COMMENTARY_SUMMARY_PROMPT = """You are a concise Biblical scholar assisting a seeker with their query: {topic} Given these relevant church fathers commentary search results: {content}
+Provide a brief summary of the key insights and interpretations of the Church Fathers' thoughts. Keep your response under 500 words, grounded in conservative theology.
+"""
+
 
 # Church Fathers
 CHURCH_FATHERS = [
