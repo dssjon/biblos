@@ -210,13 +210,42 @@ def display_bible_results(results, bible_xml):
                 for verse in bible_xml.findall(query):
                     text = verse.text
                     full_chapter_content += f"{text}\n"
-                
+
                 highlighted_content = highlight_text(full_chapter_content, content)
-                st.markdown(highlighted_content, unsafe_allow_html=True)
+                paragraph_list = split_content_into_paragraphs(highlighted_content)
+
+                for paragraph in paragraph_list:
+                    st.markdown(paragraph, unsafe_allow_html=True)
+                
                 st.write(SCORE_RESULT.format(value=round(score, 4)))
                 if st.button("Show Search Result", key=f"back_{i}"):
                     st.session_state[full_chapter_key] = False
                     st.rerun()
+
+def split_content_into_paragraphs(content, lines_per_paragraph=5):
+    paragraphs = []
+    lines = content.split('\n')
+    current_paragraph = []
+    span_open = False
+
+    for line in lines:
+        if "<span" in line and "</span>" not in line:
+            span_open = True
+            current_paragraph.append(line)
+        elif "</span>" in line:
+            span_open = False
+            current_paragraph.append(line)
+        else:
+            current_paragraph.append(line)
+
+        if len(current_paragraph) >= lines_per_paragraph and not span_open:
+            paragraphs.append("\n".join(current_paragraph))
+            current_paragraph = []
+
+    if current_paragraph:
+        paragraphs.append("\n".join(current_paragraph))
+
+    return paragraphs
 
 def display_results(bible_results, commentary_results, bible_xml, greek_texts):
     num_columns = 1
