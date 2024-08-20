@@ -9,6 +9,7 @@ import xml.etree.ElementTree as ET
 import os 
 import re
 import requests
+import json
 
 streamlit_analytics.start_tracking(load_from_json=ANALYTICS_JSON_PATH)
 
@@ -19,34 +20,33 @@ st.set_page_config(
         "Report a bug": BUG_REPORT_URL,
         "About": ABOUT_URL,
     },
+    initial_sidebar_state="expanded",
 )
 
 def select_options():
-    col1, col2, col3, col4, col5, col6, col7 = st.columns([1, 1, 1, 1, 1, 1, 1])
+    col1, col2, col3, col4, col5, col6 = st.columns([1, 1, 1, 1, 1, 1])
     with col1:
         ot = st.checkbox("Old Testament", value=True)
     with col2:
         nt = st.checkbox("New Testament", value=True)
     with col3:
-        fc = st.checkbox("Full Chapter", value=False)
-    with col4:
         st.session_state.enable_commentary = st.checkbox("Church Fathers", value=True)
-    with col5:
+    with col4:
         gk = st.checkbox("Greek NT", value=False)
-    with col6:
+    with col5:
         summarize = st.checkbox("Summarize", value=False)
-    with col7:
+    with col6:
         count = st.slider(
             "Number of Bible Results", min_value=1, max_value=8, value=4, step=1
         )
-    return ot, nt, fc, count, gk, summarize
+    return ot, nt, count, gk, summarize
 
 
 
 st.markdown(HEADER_LABEL, unsafe_allow_html=True)
 
 with st.expander("Search Options"):
-    ot_checkbox, nt_checkbox, fc, count, gk, summarize = select_options()
+    ot_checkbox, nt_checkbox, count, gk, summarize = select_options()
 
 API_KEY = os.getenv("ANTHROPIC_API_KEY")
 
@@ -194,18 +194,29 @@ def display_bible_results(results, bible_xml):
         score = r[1]
 
         with st.expander(f"**{book}** - Chapter {chapter}", expanded=True):
-            if fc:
+            full_chapter_key = f"full_chapter_{i}"
+            if full_chapter_key not in st.session_state:
+                st.session_state[full_chapter_key] = False
+
+            if not st.session_state[full_chapter_key]:
+                st.markdown(content)
+                st.write(SCORE_RESULT.format(value=round(score, 4)))
+                if st.button("View Full Chapter", key=f"view_{i}"):
+                    st.session_state[full_chapter_key] = True
+                    st.rerun()
+            else:
                 query = f".//v[@b='{book_abbr}'][@c='{chapter}']"
                 full_chapter_content = ""
                 for verse in bible_xml.findall(query):
                     text = verse.text
                     full_chapter_content += f"{text}\n"
-
+                
                 highlighted_content = highlight_text(full_chapter_content, content)
                 st.markdown(highlighted_content, unsafe_allow_html=True)
-            else:
-                st.write(f"{content}")
-            st.write(SCORE_RESULT.format(value=round(score, 4)))
+                st.write(SCORE_RESULT.format(value=round(score, 4)))
+                if st.button("Show Search Result", key=f"back_{i}"):
+                    st.session_state[full_chapter_key] = False
+                    st.rerun()
 
 def display_results(bible_results, commentary_results, bible_xml, greek_texts):
     num_columns = 1
@@ -364,7 +375,7 @@ if summarize:
             summaries = generate_summaries(llm, search_query, bible_search_results, commentary_results)
             
             if 'bible' in summaries:
-                st.subheader("Bible Summary")
+                st.subheader("Summary")
                 st.success(summaries['bible'])
             
             if 'commentary' in summaries:
