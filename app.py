@@ -30,7 +30,7 @@ def select_options():
     with col2:
         nt = st.checkbox("New Testament", value=True)
     with col3:
-        st.session_state.enable_commentary = st.checkbox("Church Fathers", value=True)
+        st.session_state.enable_commentary = st.checkbox("Church Fathers", value=False)
     with col4:
         gk = st.checkbox("Greek NT", value=False)
     with col5:
