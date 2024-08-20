@@ -278,6 +278,7 @@ def display_commentary_results(results):
                 st.write(f"{append_to_author_name.title()}")
             st.write(SCORE_RESULT.format(value=round(score, 4)))
 
+@st.cache_resource
 def load_greek_texts(directory):
     greek_texts = {}
     for filename in os.listdir(directory):
