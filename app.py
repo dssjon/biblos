@@ -20,6 +20,7 @@ st.set_page_config(
         "About": ABOUT_URL,
     },
 )
+
 def select_options():
     col1, col2, col3, col4, col5, col6 = st.columns([1, 1, 1, 1, 1, 1])
     with col1:
@@ -29,12 +30,12 @@ def select_options():
     with col3:
         fc = st.checkbox("Full Chapter", value=False)
     with col4:
-        st.session_state.enable_commentary = st.checkbox("Church Fathers", value=False)
+        st.session_state.enable_commentary = st.checkbox("Church Fathers", value=True)
     with col5:
         gk = st.checkbox("Greek NT", value=False)
     with col6:
         count = st.slider(
-            "Number of Bible Results", min_value=1, max_value=8, value=2, step=1
+            "Number of Bible Results", min_value=1, max_value=8, value=4, step=1
         )
     return ot, nt, fc, count, gk
 
@@ -55,8 +56,6 @@ st.markdown("""
         </div>
     </div>
 """, unsafe_allow_html=True)
-
-
 
 with st.expander("Search Options"):
     ot_checkbox, nt_checkbox, fc, count, gk = select_options()
@@ -171,7 +170,6 @@ def create_author_filters(church_fathers, columns):
         author_filters[author] = col.checkbox(author, value=st.session_state[author])
     return author_filters
 
-
 def get_selected_bible_filters(ot, nt):
     if ot != nt:
         return {"testament": "OT"} if ot else {"testament": "NT"}
@@ -224,7 +222,7 @@ def display_bible_results(results, bible_xml, greek_texts, nt_book_mapping):
         score = r[1]
 
         if fc:
-            with st.expander(f"**{book} {chapter}**", expanded=True):
+            with st.expander(f"**{book}** - Chapter {chapter}", expanded=True):
                 query = f".//v[@b='{book_abbr}'][@c='{chapter}']"
                 full_chapter_content = ""
                 for verse in bible_xml.findall(query):
@@ -235,7 +233,7 @@ def display_bible_results(results, bible_xml, greek_texts, nt_book_mapping):
                 st.markdown(highlighted_content, unsafe_allow_html=True)
                 st.write(SCORE_RESULT.format(value=round(score, 4)))
         else:
-            with st.expander(f"**{book} {chapter}**", expanded=True):
+            with st.expander(f"**{book}** - Chapter {chapter}", expanded=True):
                 st.write(f"{content}")
                 st.write(SCORE_RESULT.format(value=round(score, 4)))
                 
@@ -326,6 +324,35 @@ def format_bible_results(bible_search_results):
     ]
     return formatted_results
 
+def display_results(bible_results, commentary_results, bible_xml, greek_texts, nt_book_mapping):
+    if st.session_state.enable_commentary:
+        col1, col2 = st.columns(2)
+        
+        with col1:
+            st.subheader("Bible Results")
+            display_bible_results(bible_results, bible_xml, greek_texts, nt_book_mapping)
+        
+        with col2:
+            st.subheader("Church Fathers' Commentary")
+            display_commentary_results(commentary_results)
+    else:
+        st.subheader("Bible Results")
+        display_bible_results(bible_results, bible_xml, greek_texts, nt_book_mapping)
+
+def display_summaries(bible_summary, commentary_summary):
+    if st.session_state.enable_commentary:
+        col1, col2 = st.columns(2)
+        
+        with col1:
+            st.subheader("Bible Summary")
+            st.success(bible_summary)
+        
+        with col2:
+            st.subheader("Church Fathers' Summary")
+            st.success(commentary_summary)
+    else:
+        st.subheader("Bible Summary")
+        st.success(bible_summary)
 
 
 llm = setup_llm()
@@ -343,51 +370,58 @@ bible_search_results = bible_db.similarity_search_with_relevance_scores(
     filter=get_selected_bible_filters(ot_checkbox, nt_checkbox),
 )
 
-display_bible_results(bible_search_results, bible_xml, greek_texts, get_nt_book_mapping())
-
-if st.button("Summarize"):
-    if llm is None:
-        st.error("No API token found, so LLM support is disabled.")
-        st.stop()
-    else:
-        with st.spinner("Summarizing passages..."):
-            results = format_bible_results(bible_search_results)
-            if not results:
-                st.error("No results found")
-                st.stop()
-
-            all_results = "\n".join(results)
-            llm_query = BIBLE_SUMMARY_PROMPT.format(topic=search_query, passages=all_results)
-            llm_response = invoke_llm(llm, llm_query)
-            if llm_response:
-                st.success(llm_response)
-            else:
-                st.error("Failed to get a response from the LLM.")
-
+commentary_results = []
 if st.session_state.enable_commentary:
-    st.divider()
     commentary_results = perform_commentary_search(commentary_db, search_query)
-    display_commentary_results(commentary_results)
-    
-    if st.button("Summarize Church Fathers"):
+
+display_results(bible_search_results, commentary_results, bible_xml, greek_texts, get_nt_book_mapping())
+
+# Modify the summary buttons and display logic
+col1, col2 = st.columns(2) if st.session_state.enable_commentary else [st.columns([1])[0], None]
+
+with col1:
+    if st.button("Summarize Bible Passages"):
         if llm is None:
             st.error("No API token found, so LLM support is disabled.")
-            st.stop()
         else:
-            with st.spinner("Summarizing Church Fathers'..."):
-                formatted_results = format_commentary_results(commentary_results)
-                if not formatted_results:
-                    st.error("No Church Fathers' commentaries found")
-                    st.stop()
-
-                all_results = "\n".join(formatted_results)
-                llm_query = COMMENTARY_SUMMARY_PROMPT.format(topic=search_query, content=all_results)
-                llm_response = invoke_llm(llm, llm_query)
-                if llm_response:
-                    st.success(llm_response)
+            with st.spinner("Summarizing passages..."):
+                results = format_bible_results(bible_search_results)
+                if not results:
+                    st.error("No results found")
                 else:
-                    st.error("Failed to get a response from the LLM.")
+                    all_results = "\n".join(results)
+                    llm_query = BIBLE_SUMMARY_PROMPT.format(topic=search_query, passages=all_results)
+                    bible_summary = invoke_llm(llm, llm_query)
+                    if bible_summary:
+                        st.session_state.bible_summary = bible_summary
+                    else:
+                        st.error("Failed to get a response from the LLM.")
 
+if col2:  # Only show Church Fathers summary button if commentary is enabled
+    with col2:
+        if st.button("Summarize Church Fathers"):
+            if llm is None:
+                st.error("No API token found, so LLM support is disabled.")
+            else:
+                with st.spinner("Summarizing Church Fathers'..."):
+                    formatted_results = format_commentary_results(commentary_results)
+                    if not formatted_results:
+                        st.error("No Church Fathers' commentaries found")
+                    else:
+                        all_results = "\n".join(formatted_results)
+                        llm_query = COMMENTARY_SUMMARY_PROMPT.format(topic=search_query, content=all_results)
+                        commentary_summary = invoke_llm(llm, llm_query)
+                        if commentary_summary:
+                            st.session_state.commentary_summary = commentary_summary
+                        else:
+                            st.error("Failed to get a response from the LLM.")
+
+if 'bible_summary' in st.session_state:
+    if st.session_state.enable_commentary and 'commentary_summary' in st.session_state:
+        display_summaries(st.session_state.bible_summary, st.session_state.commentary_summary)
+    else:
+        display_summaries(st.session_state.bible_summary, None)
+        
 streamlit_analytics.stop_tracking(
     save_to_json=ANALYTICS_JSON_PATH, unsafe_password=UNSAFE_PASSWORD
 )
