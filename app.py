@@ -213,7 +213,8 @@ BIBLE_BOOK_NAMES = {
     "JUD": "Jude", "REV": "Revelation"
 }
 
-def display_bible_results(results, bible_xml, greek_texts, nt_book_mapping):
+
+def display_bible_results(results, bible_xml):
     for i, r in enumerate(results):
         content = r[0].page_content
         book_abbr = r[0].metadata[BOOK]
@@ -221,8 +222,8 @@ def display_bible_results(results, bible_xml, greek_texts, nt_book_mapping):
         chapter = r[0].metadata[CHAPTER]
         score = r[1]
 
-        if fc:
-            with st.expander(f"**{book}** - Chapter {chapter}", expanded=True):
+        with st.expander(f"**{book}** - Chapter {chapter}", expanded=True):
+            if fc:
                 query = f".//v[@b='{book_abbr}'][@c='{chapter}']"
                 full_chapter_content = ""
                 for verse in bible_xml.findall(query):
@@ -231,27 +232,50 @@ def display_bible_results(results, bible_xml, greek_texts, nt_book_mapping):
 
                 highlighted_content = highlight_text(full_chapter_content, content)
                 st.markdown(highlighted_content, unsafe_allow_html=True)
-                st.write(SCORE_RESULT.format(value=round(score, 4)))
-        else:
-            with st.expander(f"**{book}** - Chapter {chapter}", expanded=True):
+            else:
                 st.write(f"{content}")
-                st.write(SCORE_RESULT.format(value=round(score, 4)))
-                
-        if gk:
-            greek_paragraph = ""
+            st.write(SCORE_RESULT.format(value=round(score, 4)))
+
+def display_results(bible_results, commentary_results, bible_xml, greek_texts, nt_book_mapping):
+    num_columns = 1
+    if st.session_state.enable_commentary:
+        num_columns += 1
+    if gk:
+        num_columns += 1
+    
+    columns = st.columns(num_columns)
+    
+    with columns[0]:
+        st.subheader("Bible Results")
+        display_bible_results(bible_results, bible_xml)
+    
+    column_index = 1
+    
+    if gk:
+        with columns[column_index]:
+            st.subheader("Greek New Testament")
+            display_greek_results(bible_results, greek_texts, nt_book_mapping)
+        column_index += 1
+    
+    if st.session_state.enable_commentary:
+        with columns[column_index]:
+            st.subheader("Church Fathers' Commentary")
+            display_commentary_results(commentary_results)
+
+def display_greek_results(results, greek_texts, nt_book_mapping):
+    for i, r in enumerate(results):
+        book_abbr = r[0].metadata[BOOK]
+        book = BIBLE_BOOK_NAMES.get(book_abbr, book_abbr)
+        chapter = r[0].metadata[CHAPTER]
+        
+        greek_book_code = nt_book_mapping.get(book_abbr, "")
+        if greek_book_code:
             with st.expander(f"**{book} {chapter}** - SBL Greek New Testament", expanded=True):
-                greek_book_code = nt_book_mapping.get(book_abbr, "")
-                if greek_book_code:
-                    greek_paragraph = search_greek_texts(greek_texts, greek_book_code, chapter)
-                    if greek_paragraph:
-                        st.write(greek_paragraph)
-                    else:
-                        st.write("No Greek text available for this passage.")
-                else:
-                    st.write("This book is not part of the Greek New Testament.")
-            
-            if greek_paragraph:
-                with st.expander(f"**Dodson Greek Lexicon**", expanded=True):
+                greek_paragraph = search_greek_texts(greek_texts, greek_book_code, chapter)
+                if greek_paragraph:
+                    st.write(greek_paragraph)
+                    
+                    st.subheader("Dodson Greek Lexicon")
                     greek_words = extract_greek_word_from_result(greek_paragraph)
                     lexicon_results = set()
                     for greek_word in greek_words:
@@ -263,6 +287,27 @@ def display_bible_results(results, bible_xml, greek_texts, nt_book_mapping):
                             st.write(definition)
                     else:
                         st.write("No definitions found for the Greek words in this passage.")
+                else:
+                    st.write("No Greek text available for this passage.")
+        else:
+            st.write("This book is not part of the Greek New Testament.")
+
+def display_commentary_results(results):
+    results = sorted(results, key=lambda x: x[1], reverse=True)
+    results = [r for r in results if r[1] >= 0.81 and len(r[0].page_content) >= 450]
+    for i, r in enumerate(results):
+        content, metadata = r[0].page_content, r[0].metadata
+        father_name = metadata[FATHER_NAME]
+        source_title = metadata[SOURCE_TITLE]
+        book = metadata[BOOK]
+        append_to_author_name = metadata[APPEND_TO_AUTHOR_NAME]
+        score = r[1]
+
+        with st.expander(f"**{father_name.title()}** - {source_title.title()}", expanded=True):
+            st.write(f"{content}")
+            if append_to_author_name:
+                st.write(f"{append_to_author_name.title()}")
+            st.write(SCORE_RESULT.format(value=round(score, 4)))
 
 @st.cache_resource
 def get_nt_book_mapping():
@@ -294,23 +339,6 @@ def search_lexicon(greek_word):
             return entry_data['definitions'].get('full', None)
     return None
 
-def display_commentary_results(results):
-    results = sorted(results, key=lambda x: x[1], reverse=True)
-    results = [r for r in results if r[1] >= 0.81 and len(r[0].page_content) >= 450]
-    for i, r in enumerate(results):
-        content, metadata = r[0].page_content, r[0].metadata
-        father_name = metadata[FATHER_NAME]
-        source_title = metadata[SOURCE_TITLE]
-        book = metadata[BOOK]
-        append_to_author_name = metadata[APPEND_TO_AUTHOR_NAME]
-        score = r[1]
-
-        with st.expander(f"**{father_name.title()}** - {source_title.title()}", expanded=True):
-            st.write(f"{content}")
-            if append_to_author_name:
-                st.write(f"{append_to_author_name.title()}")
-            st.write(SCORE_RESULT.format(value=round(score, 4)))
-
 def format_commentary_results(commentary_results):
     return [
         f"Source: {r[0].metadata[FATHER_NAME]} - {r[0].metadata[SOURCE_TITLE]}\nContent: {r[0].page_content}"
@@ -323,37 +351,6 @@ def format_bible_results(bible_search_results):
         for r in bible_search_results
     ]
     return formatted_results
-
-def display_results(bible_results, commentary_results, bible_xml, greek_texts, nt_book_mapping):
-    if st.session_state.enable_commentary:
-        col1, col2 = st.columns(2)
-        
-        with col1:
-            st.subheader("Bible Results")
-            display_bible_results(bible_results, bible_xml, greek_texts, nt_book_mapping)
-        
-        with col2:
-            st.subheader("Church Fathers' Commentary")
-            display_commentary_results(commentary_results)
-    else:
-        st.subheader("Bible Results")
-        display_bible_results(bible_results, bible_xml, greek_texts, nt_book_mapping)
-
-def display_summaries(bible_summary, commentary_summary):
-    if st.session_state.enable_commentary:
-        col1, col2 = st.columns(2)
-        
-        with col1:
-            st.subheader("Bible Summary")
-            st.success(bible_summary)
-        
-        with col2:
-            st.subheader("Church Fathers' Summary")
-            st.success(commentary_summary)
-    else:
-        st.subheader("Bible Summary")
-        st.success(bible_summary)
-
 
 llm = setup_llm()
 bible_db = setup_db(DB_DIR, DB_QUERY)
@@ -377,9 +374,10 @@ if st.session_state.enable_commentary:
 display_results(bible_search_results, commentary_results, bible_xml, greek_texts, get_nt_book_mapping())
 
 # Modify the summary buttons and display logic
-col1, col2 = st.columns(2) if st.session_state.enable_commentary else [st.columns([1])[0], None]
+num_summary_columns = 1 + int(st.session_state.enable_commentary)
+summary_columns = st.columns(num_summary_columns)
 
-with col1:
+with summary_columns[0]:
     if st.button("Summarize Bible Passages"):
         if llm is None:
             st.error("No API token found, so LLM support is disabled.")
@@ -397,8 +395,8 @@ with col1:
                     else:
                         st.error("Failed to get a response from the LLM.")
 
-if col2:  # Only show Church Fathers summary button if commentary is enabled
-    with col2:
+if st.session_state.enable_commentary:
+    with summary_columns[1]:
         if st.button("Summarize Church Fathers"):
             if llm is None:
                 st.error("No API token found, so LLM support is disabled.")
@@ -416,12 +414,20 @@ if col2:  # Only show Church Fathers summary button if commentary is enabled
                         else:
                             st.error("Failed to get a response from the LLM.")
 
+# Display summaries
 if 'bible_summary' in st.session_state:
+    num_summary_display_columns = 1 + int(st.session_state.enable_commentary)
+    summary_display_columns = st.columns(num_summary_display_columns)
+    
+    with summary_display_columns[0]:
+        st.subheader("Bible Summary")
+        st.success(st.session_state.bible_summary)
+    
     if st.session_state.enable_commentary and 'commentary_summary' in st.session_state:
-        display_summaries(st.session_state.bible_summary, st.session_state.commentary_summary)
-    else:
-        display_summaries(st.session_state.bible_summary, None)
-        
+        with summary_display_columns[1]:
+            st.subheader("Church Fathers' Summary")
+            st.success(st.session_state.commentary_summary)
+
 streamlit_analytics.stop_tracking(
     save_to_json=ANALYTICS_JSON_PATH, unsafe_password=UNSAFE_PASSWORD
 )
