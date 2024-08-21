@@ -87,7 +87,7 @@ def display_summaries(search_query, bible_results, commentary_results):
     summaries = generate_summaries(search_query, bible_results, commentary_results)
 
     if 'bible' in summaries:
-        st.subheader("Bible Summary")
+        st.subheader("Summary")
         st.success(summaries['bible'])
 
     if 'commentary' in summaries:
