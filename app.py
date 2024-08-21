@@ -30,31 +30,31 @@ def main():
         st.session_state.enable_commentary = st.checkbox("Church Fathers", value=False)
         gk = st.checkbox("Greek NT", value=False)
         summarize = st.checkbox("Summarize", value=False)
-        reader_mode = st.checkbox("Reader Mode", value=False)
         count = st.slider("Number of Bible Results", min_value=1, max_value=8, value=4, step=1)
 
-    if reader_mode:
-        reader_mode_navigation()
-    else:
-        search_query = st.text_input(SEARCH_LABEL, value=st.session_state.get('search_query', ''))
-        st.session_state.search_query = search_query
+    # Display Reader Mode
+    reader_mode_navigation()
 
-        if search_query:
-            with st.spinner("Searching..."):
-                bible_results, commentary_results = perform_search(search_query, ot_checkbox, nt_checkbox, count)
+    # Display Search Input and Results
+    search_query = st.text_input(SEARCH_LABEL, value=st.session_state.get('search_query', ''))
+    st.session_state.search_query = search_query
 
-            display_results(bible_results, commentary_results, gk)
+    if search_query:
+        with st.spinner("Searching..."):
+            bible_results, commentary_results = perform_search(search_query, ot_checkbox, nt_checkbox, count)
 
-            if summarize:
-                llm = setup_llm()
-                display_summaries(search_query, bible_results, commentary_results)
+        display_results(bible_results, commentary_results, gk)
+
+        if summarize:
+            llm = setup_llm()
+            display_summaries(search_query, bible_results, commentary_results)
 
 def display_results(bible_results, commentary_results, show_greek):
     num_columns = 1 + int(st.session_state.enable_commentary) + int(show_greek)
     columns = st.columns(num_columns)
 
     with columns[0]:
-        st.subheader("Bible Results")
+        st.subheader("Search Results")
         for result in bible_results:
             display_bible_result(result)
 
