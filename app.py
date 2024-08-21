@@ -2,7 +2,6 @@ import streamlit as st
 import streamlit_analytics
 from config import *
 
-# Set page config at the very beginning
 st.set_page_config(
     layout="wide",
     menu_items={
@@ -13,10 +12,8 @@ st.set_page_config(
     initial_sidebar_state="expanded",
 )
 
-# Start analytics tracking
 streamlit_analytics.start_tracking(load_from_json=ANALYTICS_JSON_PATH)
 
-# Import other modules after st.set_page_config
 from modules.search import perform_search
 from modules.reader import reader_mode_navigation
 from modules.greek import display_greek_results
@@ -50,23 +47,26 @@ def main():
 
             if summarize:
                 llm = setup_llm()
-                display_summaries(llm, search_query, bible_results, commentary_results)
+                display_summaries(search_query, bible_results, commentary_results)
 
 def display_results(bible_results, commentary_results, show_greek):
-    col1, col2, col3 = st.columns([2, 1, 1])
+    num_columns = 1 + int(st.session_state.enable_commentary) + int(show_greek)
+    columns = st.columns(num_columns)
 
-    with col1:
+    with columns[0]:
         st.subheader("Bible Results")
         for result in bible_results:
             display_bible_result(result)
 
+    column_index = 1
     if show_greek:
-        with col2:
+        with columns[column_index]:
             st.subheader("Greek New Testament")
             display_greek_results(bible_results)
+        column_index += 1
 
     if st.session_state.enable_commentary:
-        with col3:
+        with columns[column_index]:
             st.subheader("Church Fathers' Commentary")
             display_commentary_results(commentary_results)
 
@@ -82,7 +82,6 @@ def display_bible_result(result):
 if __name__ == "__main__":
     main()
 
-# Stop analytics tracking
 streamlit_analytics.stop_tracking(
     save_to_json=ANALYTICS_JSON_PATH, unsafe_password=UNSAFE_PASSWORD
 )
