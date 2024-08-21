@@ -63,10 +63,3 @@ def reader_mode_navigation():
     max_chapters = max(int(verse.get('c')) for verse in bible_xml.findall(f".//v[@b='{st.session_state.current_book}']"))
     with col2:
         chapter = st.number_input("Chapter", min_value=1, max_value=max_chapters, value=st.session_state.current_chapter, key="chapter_select", on_change=update_chapter)
-
-    chapter_text = get_full_chapter_text(bible_xml, st.session_state.current_book, st.session_state.current_chapter)
-    st.markdown(f"## {BIBLE_BOOK_NAMES[st.session_state.current_book]} {st.session_state.current_chapter}")
-    
-    paragraphs = split_content_into_paragraphs(chapter_text)
-    for paragraph in paragraphs:
-        st.markdown(paragraph)

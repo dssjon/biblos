@@ -15,7 +15,7 @@ st.set_page_config(
 streamlit_analytics.start_tracking(load_from_json=ANALYTICS_JSON_PATH)
 
 from modules.search import perform_search
-from modules.reader import reader_mode_navigation
+from modules.reader import reader_mode_navigation, get_full_chapter_text, load_bible_xml, split_content_into_paragraphs
 from modules.greek import display_greek_results
 from modules.commentary import display_commentary_results
 from modules.summaries import display_summaries, setup_llm
@@ -32,31 +32,51 @@ def main():
         summarize = st.checkbox("Summarize", value=False)
         count = st.slider("Number of Bible Results", min_value=1, max_value=8, value=4, step=1)
 
-    # Display Reader Mode
+    # Display Reader Mode (Book/Chapter selectors)
     reader_mode_navigation()
 
     # Display Search Input
     search_query = st.text_input(SEARCH_LABEL, value=st.session_state.get('search_query', ''))
     st.session_state.search_query = search_query
 
-    if search_query:
-        with st.spinner("Searching..."):
-            bible_results, commentary_results = perform_search(search_query, ot_checkbox, nt_checkbox, count)
+    # Layout adjustment: display search results and chapter text
+    cols = st.columns([3, 2])
 
-        # Display Summary UI if applicable
-        if summarize:
-            llm = setup_llm()
-            display_summaries(search_query, bible_results, commentary_results)
+    with cols[0]:
+        # Display Chapter Text
+        display_chapter_text()
 
-        # Display Bible Search Results below Summary
-        display_results(bible_results, commentary_results, gk)
+    with cols[1]:
+        if search_query:
+            with st.spinner("Searching..."):
+                bible_results, commentary_results = perform_search(search_query, ot_checkbox, nt_checkbox, count)
+
+            # Display Summary UI if applicable
+            if summarize:
+                llm = setup_llm()
+                display_summaries(search_query, bible_results, commentary_results)
+
+            # Display Bible Search Results below Summary
+            display_results(bible_results, commentary_results, gk)
+
+def display_chapter_text():
+    # Function to display the selected chapter text
+    if 'current_book' in st.session_state and 'current_chapter' in st.session_state:
+        book = st.session_state.current_book
+        chapter = st.session_state.current_chapter
+        chapter_text = get_full_chapter_text(load_bible_xml(BIBLE_XML_FILE), book, chapter)
+        st.markdown(f"## {BIBLE_BOOK_NAMES[book]} {chapter}")
+        paragraphs = split_content_into_paragraphs(chapter_text)
+        for paragraph in paragraphs:
+            st.markdown(paragraph)
 
 def display_results(bible_results, commentary_results, show_greek):
+        
     num_columns = 1 + int(st.session_state.enable_commentary) + int(show_greek)
     columns = st.columns(num_columns)
 
     with columns[0]:
-        st.subheader("Bible Results")
+        st.subheader("Search Results")
         for result in bible_results:
             display_bible_result(result)
 

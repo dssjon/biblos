@@ -76,7 +76,7 @@ SOURCE_TITLE = "source_title"
 BOOK = "book"
 CHAPTER = "chapter"
 TITLE = "Biblos: Exploration Tool"
-SEARCH_LABEL = "Search:"
+SEARCH_LABEL = "Semantic Search:"
 SCORE_RESULT = """**Similarity Score**: {value}"""
 SCORE_FUNCTION = "cosine"
 
