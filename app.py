@@ -35,7 +35,7 @@ def main():
     # Display Reader Mode
     reader_mode_navigation()
 
-    # Display Search Input and Results
+    # Display Search Input
     search_query = st.text_input(SEARCH_LABEL, value=st.session_state.get('search_query', ''))
     st.session_state.search_query = search_query
 
@@ -43,18 +43,20 @@ def main():
         with st.spinner("Searching..."):
             bible_results, commentary_results = perform_search(search_query, ot_checkbox, nt_checkbox, count)
 
-        display_results(bible_results, commentary_results, gk)
-
+        # Display Summary UI if applicable
         if summarize:
             llm = setup_llm()
             display_summaries(search_query, bible_results, commentary_results)
+
+        # Display Bible Search Results below Summary
+        display_results(bible_results, commentary_results, gk)
 
 def display_results(bible_results, commentary_results, show_greek):
     num_columns = 1 + int(st.session_state.enable_commentary) + int(show_greek)
     columns = st.columns(num_columns)
 
     with columns[0]:
-        st.subheader("Search Results")
+        st.subheader("Bible Results")
         for result in bible_results:
             display_bible_result(result)
 
