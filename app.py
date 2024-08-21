@@ -376,7 +376,7 @@ def get_full_chapter_text(bible_xml, book_abbr, chapter):
     for verse in bible_xml.findall(query):
         verse_num = verse.get('v')
         text = verse.text
-        full_chapter_content += f"[{verse_num}] {text}\n"
+        full_chapter_content += f"{verse_num} {text}\n"
     return full_chapter_content.strip()
 
 def update_chapter():
@@ -413,6 +413,7 @@ def reader_mode_navigation(bible_xml):
 
     # Display chapter content
     chapter_text = get_full_chapter_text(bible_xml, st.session_state.current_book, st.session_state.current_chapter)
+
     st.markdown(f"## {BIBLE_BOOK_NAMES[st.session_state.current_book]} {st.session_state.current_chapter}")
     
     # Split chapter text into paragraphs and display
