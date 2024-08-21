@@ -30,7 +30,7 @@ def main():
         ot_checkbox = st.checkbox("Old Testament", value=True)
         nt_checkbox = st.checkbox("New Testament", value=True)
         st.session_state.enable_commentary = st.checkbox("Church Fathers", value=False)
-        gk = st.checkbox("Greek NT", value=False)
+        st.session_state.show_greek = st.checkbox("Greek NT", value=False)
         summarize = st.checkbox("Summarize", value=False)
         count = st.slider("Number of Bible Results", min_value=1, max_value=8, value=4, step=1)
 
@@ -41,28 +41,27 @@ def main():
     search_query = st.text_input(SEARCH_LABEL, value=st.session_state.get('search_query', DEFAULT_SEARCH_QUERY))
     st.session_state.search_query = search_query
 
-    # Layout adjustment: display search results and chapter text
-    cols = st.columns([3, 2])
+    # Perform search if query exists
+    if search_query:
+        with st.spinner("Searching..."):
+            bible_results, commentary_results = perform_search(search_query, ot_checkbox, nt_checkbox, count)
 
-    with cols[0]:
-        # Display Chapter Text
-        display_chapter_text()
+        # Create two main columns: one for chapter text, one for results
+        col1, col2 = st.columns([1, 1])
 
-    with cols[1]:
-        if search_query:
-            with st.spinner("Searching..."):
-                bible_results, commentary_results = perform_search(search_query, ot_checkbox, nt_checkbox, count)
+        with col1:
+            display_chapter_text()
 
+        with col2:
             # Display Summary UI if applicable
             if summarize:
                 llm = setup_llm()
                 display_summaries(search_query, bible_results, commentary_results)
 
-            # Display Bible Search Results below Summary
-            display_results(bible_results, commentary_results, gk)
+            # Display search results
+            display_results(bible_results, commentary_results, st.session_state.show_greek)
 
 def display_chapter_text():
-    # Function to display the selected chapter text
     if 'current_book' in st.session_state and 'current_chapter' in st.session_state:
         book = st.session_state.current_book
         chapter = st.session_state.current_chapter
@@ -73,23 +72,36 @@ def display_chapter_text():
             st.markdown(paragraph)
 
 def display_results(bible_results, commentary_results, show_greek):
-    num_columns = 1 + int(st.session_state.enable_commentary) + int(show_greek)
-    columns = st.columns(num_columns)
-
-    with columns[0]:
+    # Determine the number of columns based on enabled options
+    num_columns = 1  # Bible results always shown
+    if show_greek:
+        num_columns += 1
+    if st.session_state.enable_commentary:
+        num_columns += 1
+    
+    # Create columns with equal width
+    columns = st.columns([1] * num_columns)
+    
+    # Distribute content among columns
+    col_index = 0
+    
+    # Bible results
+    with columns[col_index]:
         st.subheader("Search Results")
         for result in bible_results:
             display_bible_result(result)
-
-    column_index = 1
+    col_index += 1
+    
+    # Greek results
     if show_greek:
-        with columns[column_index]:
+        with columns[col_index]:
             st.subheader("Greek New Testament")
             display_greek_results(bible_results)
-        column_index += 1
-
+        col_index += 1
+    
+    # Commentary results
     if st.session_state.enable_commentary:
-        with columns[column_index]:
+        with columns[col_index]:
             st.subheader("Church Fathers' Commentary")
             display_commentary_results(commentary_results)
 
