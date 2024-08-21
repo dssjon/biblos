@@ -23,6 +23,15 @@ st.set_page_config(
     initial_sidebar_state="expanded",
 )
 
+# st.markdown(
+#     """
+#     <style>
+#     .stDeployButton {visibility: hidden;}
+#     </style>
+#     """,
+#     unsafe_allow_html=True
+# )
+
 def select_options():
     col1, col2, col3, col4, col5, col6 = st.columns([1, 1, 1, 1, 1, 1])
     with col1:
