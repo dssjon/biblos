@@ -23,17 +23,8 @@ st.set_page_config(
     initial_sidebar_state="expanded",
 )
 
-# st.markdown(
-#     """
-#     <style>
-#     .stDeployButton {visibility: hidden;}
-#     </style>
-#     """,
-#     unsafe_allow_html=True
-# )
-
 def select_options():
-    col1, col2, col3, col4, col5, col6 = st.columns([1, 1, 1, 1, 1, 1])
+    col1, col2, col3, col4, col5, col6, col7 = st.columns([1, 1, 1, 1, 1, 1, 1])
     with col1:
         ot = st.checkbox("Old Testament", value=True)
     with col2:
@@ -48,14 +39,9 @@ def select_options():
         count = st.slider(
             "Number of Bible Results", min_value=1, max_value=8, value=4, step=1
         )
-    return ot, nt, count, gk, summarize
-
-
-
-st.markdown(HEADER_LABEL, unsafe_allow_html=True)
-
-with st.expander("Search Options"):
-    ot_checkbox, nt_checkbox, count, gk, summarize = select_options()
+    with col7:
+        reader_mode = st.checkbox("Reader Mode", value=False)
+    return ot, nt, count, gk, summarize, reader_mode
 
 API_KEY = os.getenv("ANTHROPIC_API_KEY")
 
@@ -192,7 +178,6 @@ def extract_greek_word_from_result(result):
     if matches:
         return matches 
     return ""
-
 
 def display_bible_results(results, bible_xml):
     for i, r in enumerate(results):
@@ -385,6 +370,59 @@ def generate_summaries(llm, search_query, bible_search_results, commentary_resul
     
     return summaries
 
+def get_full_chapter_text(bible_xml, book_abbr, chapter):
+    query = f".//v[@b='{book_abbr}'][@c='{chapter}']"
+    full_chapter_content = ""
+    for verse in bible_xml.findall(query):
+        verse_num = verse.get('v')
+        text = verse.text
+        full_chapter_content += f"[{verse_num}] {text}\n"
+    return full_chapter_content.strip()
+
+def update_chapter():
+    st.session_state.current_chapter = st.session_state.chapter_select
+
+def reader_mode_navigation(bible_xml):
+    # Initialize session state for book and chapter if not already set
+    if 'current_book' not in st.session_state:
+        st.session_state.current_book = list(BIBLE_BOOK_NAMES.keys())[0]
+    if 'current_chapter' not in st.session_state:
+        st.session_state.current_chapter = 1
+
+    # Create a single row for book and chapter selection
+    col1, col2 = st.columns([3, 1])
+    
+    with col1:
+        # Book selection with descriptions
+        books = list(BIBLE_BOOK_NAMES.keys())
+        book_options = [f"{BIBLE_BOOK_NAMES[book]} ({book})" for book in books]
+        selected_book_option = st.selectbox("Book", book_options, index=books.index(st.session_state.current_book), key="book_select")
+        selected_book = books[book_options.index(selected_book_option)]
+    
+    # Update current book if changed
+    if selected_book != st.session_state.current_book:
+        st.session_state.current_book = selected_book
+        st.session_state.current_chapter = 1
+
+    # Get max chapters for the selected book
+    max_chapters = max(int(verse.get('c')) for verse in bible_xml.findall(f".//v[@b='{st.session_state.current_book}']"))
+
+    with col2:
+        # Chapter selection
+        chapter = st.number_input("Chapter", min_value=1, max_value=max_chapters, value=st.session_state.current_chapter, key="chapter_select", on_change=update_chapter)
+
+    # Display chapter content
+    chapter_text = get_full_chapter_text(bible_xml, st.session_state.current_book, st.session_state.current_chapter)
+    st.markdown(f"## {BIBLE_BOOK_NAMES[st.session_state.current_book]} {st.session_state.current_chapter}")
+    
+    # Split chapter text into paragraphs and display
+    paragraphs = split_content_into_paragraphs(chapter_text)
+    for paragraph in paragraphs:
+        st.markdown(paragraph)
+
+
+
+
 llm = setup_llm()
 bible_db = setup_db(DB_DIR, DB_QUERY)
 commentary_db = setup_db(COMMENTARY_DB_DIR, COMMENTARY_DB_QUERY)
@@ -392,54 +430,61 @@ bible_xml = load_bible_xml(BIBLE_XML_FILE)
 
 initialize_session_state(DEFAULT_QUERIES)
 
-search_query = st.text_input(SEARCH_LABEL, st.session_state.search_query)
+st.markdown(HEADER_LABEL, unsafe_allow_html=True)
 
-bible_search_results = bible_db.similarity_search_with_relevance_scores(
-    search_query,
-    k=count,
-    filter=get_selected_bible_filters(ot_checkbox, nt_checkbox),
-)
+with st.expander("Search Options"):
+    ot_checkbox, nt_checkbox, count, gk, summarize, reader_mode = select_options()
 
-commentary_results = []
-if st.session_state.enable_commentary:
-    commentary_results = perform_commentary_search(commentary_db, search_query)
+if reader_mode:
+    reader_mode_navigation(bible_xml)
+else:
+    search_query = st.text_input(SEARCH_LABEL, st.session_state.search_query)
 
-# Generate summaries if the checkbox is checked
-if summarize:
-    if llm is None:
-        st.error("No API token found, so LLM support is disabled.")
-    else:
-        with st.spinner("Generating summaries..."):
-            summaries = generate_summaries(llm, search_query, bible_search_results, commentary_results)
-            
-            if 'bible' in summaries:
-                st.subheader("Summary")
-                st.success(summaries['bible'])
-            
-            if 'commentary' in summaries:
+    bible_search_results = bible_db.similarity_search_with_relevance_scores(
+        search_query,
+        k=count,
+        filter=get_selected_bible_filters(ot_checkbox, nt_checkbox),
+    )
+
+    commentary_results = []
+    if st.session_state.enable_commentary:
+        commentary_results = perform_commentary_search(commentary_db, search_query)
+
+    # Generate summaries if the checkbox is checked
+    if summarize:
+        if llm is None:
+            st.error("No API token found, so LLM support is disabled.")
+        else:
+            with st.spinner("Generating summaries..."):
+                summaries = generate_summaries(llm, search_query, bible_search_results, commentary_results)
+                
+                if 'bible' in summaries:
+                    st.subheader("Summary")
+                    st.success(summaries['bible'])
+                
+                if 'commentary' in summaries:
+                    st.subheader("Church Fathers' Summary")
+                    st.success(summaries['commentary'])
+
+    display_results(bible_search_results, commentary_results, bible_xml, greek_texts)
+
+    # Modify the summary buttons and display logic
+    num_summary_columns = 1 + int(st.session_state.enable_commentary)
+    summary_columns = st.columns(num_summary_columns)
+
+    # Display summaries
+    if 'bible_summary' in st.session_state:
+        num_summary_display_columns = 1 + int(st.session_state.enable_commentary)
+        summary_display_columns = st.columns(num_summary_display_columns)
+        
+        with summary_display_columns[0]:
+            st.subheader("Bible Summary")
+            st.success(st.session_state.bible_summary)
+        
+        if st.session_state.enable_commentary and 'commentary_summary' in st.session_state:
+            with summary_display_columns[1]:
                 st.subheader("Church Fathers' Summary")
-                st.success(summaries['commentary'])
-
-
-display_results(bible_search_results, commentary_results, bible_xml, greek_texts)
-
-# Modify the summary buttons and display logic
-num_summary_columns = 1 + int(st.session_state.enable_commentary)
-summary_columns = st.columns(num_summary_columns)
-
-# Display summaries
-if 'bible_summary' in st.session_state:
-    num_summary_display_columns = 1 + int(st.session_state.enable_commentary)
-    summary_display_columns = st.columns(num_summary_display_columns)
-    
-    with summary_display_columns[0]:
-        st.subheader("Bible Summary")
-        st.success(st.session_state.bible_summary)
-    
-    if st.session_state.enable_commentary and 'commentary_summary' in st.session_state:
-        with summary_display_columns[1]:
-            st.subheader("Church Fathers' Summary")
-            st.success(st.session_state.commentary_summary)
+                st.success(st.session_state.commentary_summary)
 
 streamlit_analytics.stop_tracking(
     save_to_json=ANALYTICS_JSON_PATH, unsafe_password=UNSAFE_PASSWORD
