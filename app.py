@@ -15,10 +15,12 @@ st.set_page_config(
 streamlit_analytics.start_tracking(load_from_json=ANALYTICS_JSON_PATH)
 
 from modules.search import perform_search
-from modules.reader import reader_mode_navigation, get_full_chapter_text, load_bible_xml, split_content_into_paragraphs
+from modules.reader import reader_mode_navigation, load_bible_xml, get_full_chapter_text, split_content_into_paragraphs
 from modules.greek import display_greek_results
 from modules.commentary import display_commentary_results
 from modules.summaries import display_summaries, setup_llm
+
+DEFAULT_SEARCH_QUERY = "What did Jesus say about eternal life?"
 
 def main():
     st.markdown(HEADER_LABEL, unsafe_allow_html=True)
@@ -36,7 +38,7 @@ def main():
     reader_mode_navigation()
 
     # Display Search Input
-    search_query = st.text_input(SEARCH_LABEL, value=st.session_state.get('search_query', ''))
+    search_query = st.text_input(SEARCH_LABEL, value=st.session_state.get('search_query', DEFAULT_SEARCH_QUERY))
     st.session_state.search_query = search_query
 
     # Layout adjustment: display search results and chapter text
@@ -71,7 +73,6 @@ def display_chapter_text():
             st.markdown(paragraph)
 
 def display_results(bible_results, commentary_results, show_greek):
-        
     num_columns = 1 + int(st.session_state.enable_commentary) + int(show_greek)
     columns = st.columns(num_columns)
 
@@ -97,7 +98,7 @@ def display_bible_result(result):
     book = BIBLE_BOOK_NAMES.get(metadata['book'], metadata['book'])
     chapter = metadata['chapter']
 
-    with st.expander(f"**{book}** - Chapter {chapter}", expanded=True):
+    with st.expander(f"**{book} {chapter}**", expanded=True):
         st.markdown(content)
         st.write(SCORE_RESULT.format(value=round(score, 4)))
 
