@@ -32,11 +32,20 @@ def main():
         nt_checkbox = st.checkbox("New Testament", value=True)
         st.session_state.enable_commentary = st.checkbox("Church Fathers", value=False)
         st.session_state.show_greek = st.checkbox("Greek NT", value=False)
-        summarize = st.checkbox("Summarize", value=False)
-        count = st.slider("Number of Bible Results", min_value=1, max_value=8, value=4, step=1)
+        summarize = st.checkbox("Summarize", value=True)
+        count = st.slider("Number of Bible Results", min_value=1, max_value=8, value=2, step=1)
 
-    search_query = st.text_input(SEARCH_LABEL, value=st.session_state.get('search_query', DEFAULT_SEARCH_QUERY))
-    st.session_state.search_query = search_query
+    search_col, book_col, chapter_col = st.columns([3, 2, 1])
+
+    with search_col:
+        search_query = st.text_input(SEARCH_LABEL, value=st.session_state.get('search_query', DEFAULT_SEARCH_QUERY))
+        st.session_state.search_query = search_query
+
+    with book_col:
+        select_book()
+    
+    with chapter_col:
+        select_chapter()
 
     search_results = None
     commentary_results = None
@@ -49,8 +58,6 @@ def main():
             first_result = search_results[0]
             st.session_state.current_book = first_result[0].metadata['book']
             st.session_state.current_chapter = first_result[0].metadata['chapter']
-
-    reader_mode_navigation()
 
     col1, col2 = st.columns([1, 1])
 
@@ -65,30 +72,27 @@ def main():
 
             display_results(search_results, commentary_results, st.session_state.show_greek)
 
-def reader_mode_navigation():
+def select_book():
     bible_xml = load_bible_xml(BIBLE_XML_FILE)
-
     if 'current_book' not in st.session_state:
         st.session_state.current_book = list(BIBLE_BOOK_NAMES.keys())[0]
-    if 'current_chapter' not in st.session_state:
-        st.session_state.current_chapter = 1
 
-    col1, col2 = st.columns([3, 1])
-    
-    with col1:
-        books = list(BIBLE_BOOK_NAMES.keys())
-        book_options = [f"{BIBLE_BOOK_NAMES[book]} ({book})" for book in books]
-        selected_book_option = st.selectbox("Book", book_options, index=books.index(st.session_state.current_book), key="book_select")
-        selected_book = books[book_options.index(selected_book_option)]
+    books = list(BIBLE_BOOK_NAMES.keys())
+    book_options = [f"{BIBLE_BOOK_NAMES[book]}" for book in books]
+    selected_book_option = st.selectbox("Book", book_options, index=books.index(st.session_state.current_book), key="book_select")
+    selected_book = books[book_options.index(selected_book_option)]
     
     if selected_book != st.session_state.current_book:
         st.session_state.current_book = selected_book
         st.session_state.current_chapter = 1
 
-    max_chapters = max(int(verse.get('c')) for verse in bible_xml.findall(f".//v[@b='{st.session_state.current_book}']"))
-    with col2:
-        st.session_state.current_chapter = st.number_input("Chapter", min_value=1, max_value=max_chapters, value=st.session_state.current_chapter, key="chapter_select")
+def select_chapter():
+    bible_xml = load_bible_xml(BIBLE_XML_FILE)
+    if 'current_chapter' not in st.session_state:
+        st.session_state.current_chapter = 1
 
+    max_chapters = max(int(verse.get('c')) for verse in bible_xml.findall(f".//v[@b='{st.session_state.current_book}']"))
+    st.session_state.current_chapter = st.number_input("Chapter", min_value=1, max_value=max_chapters, value=st.session_state.current_chapter, key="chapter_select")
 
 def display_chapter_text(search_results):
     if 'current_book' in st.session_state and 'current_chapter' in st.session_state:
@@ -110,7 +114,7 @@ def display_chapter_text(search_results):
 
         if search_results:
             score = search_results[0][1]
-            highlighted_text = highlighted_text + f"\n\n**Similarity Score: {round(score, 4)}**\n"
+            highlighted_text = highlighted_text + f"\n\n**Similarity Score:** {round(score, 4)}\n"
         st.subheader(f"{BIBLE_BOOK_NAMES[book]} {chapter}")
 
         paragraphs = split_content_into_paragraphs(highlighted_text)
