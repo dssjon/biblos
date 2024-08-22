@@ -32,7 +32,7 @@ def main():
         nt_checkbox = st.checkbox("New Testament", value=True)
         st.session_state.enable_commentary = st.checkbox("Church Fathers", value=False)
         st.session_state.show_greek = st.checkbox("Greek NT", value=False)
-        summarize = st.checkbox("Summarize", value=True)
+        summarize = st.checkbox("Summarize", value=False)
         count = st.slider("Number of Bible Results", min_value=1, max_value=8, value=2, step=1)
 
     search_col, book_col, chapter_col = st.columns([3, 2, 1])
@@ -108,7 +108,7 @@ def display_chapter_text(search_results):
         highlighted_text = ""
         for verse_num, verse_text in verses:
             if verse_num in matching_verses:
-                highlighted_text += f'<span style="background-color: gold;"><sup>{verse_num}</sup> {verse_text}</span> '
+                highlighted_text += f'<span style="background-color: #FFD700; color: #000000;"><sup>{verse_num}</sup> {verse_text}</span> '
             else:
                 highlighted_text += f'<sup>{verse_num}</sup> {verse_text} '
 
