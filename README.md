@@ -96,3 +96,6 @@ Biblos leverages the following open source projects and resources:
 - [Dodson Greek Lexicon](https://github.com/biblicalhumanities/Dodson-Greek-Lexicon) - Greek word definitions
 - [Historical Christian Faith Commentaries Database](https://github.com/HistoricalChristianFaith/Commentaries-Database) - Church Fathers' commentaries
 
+## License
+This project is licensed under the Creative Commons Attribution-NonCommercial 4.0 International License. 
+[![License: CC BY-NC 4.0](https://img.shields.io/badge/License-CC%20BY--NC%204.0-lightgrey.svg)](https://creativecommons.org/licenses/by-nc/4.0/)
