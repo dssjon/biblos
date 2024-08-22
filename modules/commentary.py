@@ -4,9 +4,17 @@ import streamlit as st
 from config import FATHER_NAME, SOURCE_TITLE, BOOK, APPEND_TO_AUTHOR_NAME, SCORE_RESULT
 
 def display_commentary_results(results):
+    if not results:
+        st.write("No relevant commentary found for this query.")
+        return
+
     results = sorted(results, key=lambda x: x[1], reverse=True)
     results = [r for r in results if r[1] >= 0.81 and len(r[0].page_content) >= 450]
     
+    if not results:
+        st.write("No commentary met the relevance threshold for this query.")
+        return
+
     for i, r in enumerate(results):
         content, metadata = r[0].page_content, r[0].metadata
         father_name = metadata[FATHER_NAME]

@@ -10,7 +10,9 @@ def load_bible_xml(input_file):
     root = tree.getroot()
     return root
 
-def get_full_chapter_text(bible_xml, book_abbr, chapter):
+@st.cache_data
+def get_full_chapter_text(book_abbr, chapter):
+    bible_xml = load_bible_xml(BIBLE_XML_FILE)
     query = f".//v[@b='{book_abbr}'][@c='{chapter}']"
     full_chapter_content = ""
     for verse in bible_xml.findall(query):
@@ -19,6 +21,7 @@ def get_full_chapter_text(bible_xml, book_abbr, chapter):
         full_chapter_content += f"{verse_num} {text}\n"
     return full_chapter_content.strip()
 
+@st.cache_data
 def split_content_into_paragraphs(content, lines_per_paragraph=5):
     paragraphs = []
     lines = content.split('\n')

@@ -39,6 +39,7 @@ def load_lexicon_xml(input_file):
 greek_texts = load_greek_texts('./data/sblgnt')
 dodson_lexicon = load_lexicon_xml(LEXICON_XML_FILE)
 
+@st.cache_data
 def search_greek_texts(book_code, chapter=None):
     paragraph = ""
     target_text = greek_texts.get(book_code, [])
@@ -54,6 +55,7 @@ def extract_greek_word_from_result(result):
     matches = re.findall(greek_word_regex, result)
     return matches if matches else []
 
+@st.cache_data
 def search_lexicon(greek_word):
     for entry_id, entry_data in dodson_lexicon.items():
         if entry_data['orth'].startswith(greek_word):

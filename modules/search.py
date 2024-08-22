@@ -22,6 +22,25 @@ def get_selected_bible_filters(ot, nt):
         return {"testament": "OT" if ot else "NT"}
     return {}
 
+def perform_search(search_query, ot_checkbox, nt_checkbox, count):
+    bible_db = setup_db(DB_DIR, DB_QUERY)
+    bible_search_results = perform_bible_search(bible_db, search_query, ot_checkbox, nt_checkbox, count)
+
+    commentary_results = []
+    if st.session_state.enable_commentary:
+        commentary_db = setup_db(COMMENTARY_DB_DIR, COMMENTARY_DB_QUERY)
+        commentary_results = perform_commentary_search(commentary_db, search_query)
+
+    return bible_search_results, commentary_results
+
+@st.cache_data
+def perform_bible_search(_bible_db, search_query, ot_checkbox, nt_checkbox, count):
+    return _bible_db.similarity_search_with_relevance_scores(
+        search_query,
+        k=count,
+        filter=get_selected_bible_filters(ot_checkbox, nt_checkbox),
+    )
+
 def perform_commentary_search(commentary_db, search_query):
     search_results = []
     for author in CHURCH_FATHERS:
@@ -36,6 +55,7 @@ def perform_commentary_search(commentary_db, search_query):
         except Exception as exc:
             print(f"Author search generated an exception for {author}: {exc}")
     return search_results
+
 
 def perform_search(search_query, ot_checkbox, nt_checkbox, count):
     bible_db = setup_db(DB_DIR, DB_QUERY)

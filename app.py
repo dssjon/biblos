@@ -97,7 +97,7 @@ def display_chapter_text():
     if 'current_book' in st.session_state and 'current_chapter' in st.session_state:
         book = st.session_state.current_book
         chapter = st.session_state.current_chapter
-        chapter_text = get_full_chapter_text(load_bible_xml(BIBLE_XML_FILE), book, chapter)
+        chapter_text = get_full_chapter_text(book, chapter)
         st.markdown(f"## {BIBLE_BOOK_NAMES[book]} {chapter}")
         paragraphs = split_content_into_paragraphs(chapter_text)
         for paragraph in paragraphs:
