@@ -41,11 +41,11 @@ def main():
     # Perform search if query exists
     if search_query:
         with st.spinner("Searching..."):
-            bible_results, commentary_results = perform_search(search_query, ot_checkbox, nt_checkbox, count)
+            search_results, commentary_results = perform_search(search_query, ot_checkbox, nt_checkbox, count)
 
         # Update current book and chapter based on the first search result
-        if bible_results:
-            first_result = bible_results[0]
+        if search_results:
+            first_result = search_results[0]
             st.session_state.current_book = first_result[0].metadata['book']
             st.session_state.current_chapter = first_result[0].metadata['chapter']
 
@@ -64,10 +64,10 @@ def main():
             # Display Summary UI if applicable
             if summarize:
                 llm = setup_llm()
-                display_summaries(search_query, bible_results, commentary_results)
+                display_summaries(search_query, search_results, commentary_results)
 
             # Display search results
-            display_results(bible_results, commentary_results, st.session_state.show_greek)
+            display_results(search_results, commentary_results, st.session_state.show_greek)
 
 def reader_mode_navigation():
     bible_xml = load_bible_xml(BIBLE_XML_FILE)
@@ -98,7 +98,7 @@ def display_chapter_text():
         book = st.session_state.current_book
         chapter = st.session_state.current_chapter
         chapter_text = get_full_chapter_text(book, chapter)
-        st.markdown(f"## {BIBLE_BOOK_NAMES[book]} {chapter}")
+        #st.markdown(f"## {BIBLE_BOOK_NAMES[book]} {chapter}")
         paragraphs = split_content_into_paragraphs(chapter_text)
         for paragraph in paragraphs:
             st.markdown(paragraph)
@@ -119,7 +119,7 @@ def display_results(bible_results, commentary_results, show_greek):
     
     # Bible results
     with columns[col_index]:
-        st.subheader("Search Results")
+        #st.subheader("Search Results")
         for result in bible_results:
             display_search_result(result)
     col_index += 1
