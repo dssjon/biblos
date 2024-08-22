@@ -31,8 +31,8 @@ def invoke_llm(llm, prompt):
     
     data = {
         "model": llm["model"],
-        "max_tokens": 512,
-        "temperature": 0.2,
+        "max_tokens": 256,
+        "temperature": 0.0,
         "messages": [{"role": "user", "content": prompt}]
     }
     

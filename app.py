@@ -32,7 +32,7 @@ def main():
         nt_checkbox = st.checkbox("New Testament", value=True)
         st.session_state.enable_commentary = st.checkbox("Church Fathers", value=False)
         st.session_state.show_greek = st.checkbox("Greek NT", value=False)
-        summarize = st.checkbox("Summarize", value=False)
+        summarize = st.checkbox("Summarize", value=True)
         count = st.slider("Number of Bible Results", min_value=1, max_value=8, value=2, step=1)
 
     search_col, book_col, chapter_col = st.columns([3, 2, 1])

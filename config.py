@@ -34,12 +34,12 @@ The topic for analysis is {topic}. Here are the Bible passages: {passages}.  Ple
 """
 
 
-BIBLE_SUMMARY_PROMPT = """You are a concise Biblical scholar assisting a seeker with their query: "{topic}"  Given these relevant passages: {passages} Provide a brief, focused response on the central theme or teaching from these verses related to the query. Keep your response under 300 words, grounded in conservative theology.
+BIBLE_SUMMARY_PROMPT = """You are a concise Biblical scholar assisting a seeker with their query: "{topic}"  Given these relevant passages: {passages} Provide a brief, focused response on the central theme or teaching from these verses related to the query. Keep your response under 200 words, grounded in conservative theology.
 """
 
 
 COMMENTARY_SUMMARY_PROMPT = """You are a concise Biblical scholar assisting a seeker with their query: {topic} Given these relevant church fathers commentary search results: {content}
-Provide a brief summary of the key insights and interpretations of the Church Fathers' thoughts. Keep your response under 300 words, grounded in conservative theology.
+Provide a brief summary of the key insights and interpretations of the Church Fathers' thoughts. Keep your response under 200 words, grounded in conservative theology.
 """
 
 
