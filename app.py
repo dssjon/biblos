@@ -16,6 +16,7 @@ streamlit_analytics.start_tracking(load_from_json=ANALYTICS_JSON_PATH)
 
 from modules.search import perform_search
 from modules.reader import load_bible_xml, get_full_chapter_text, split_content_into_paragraphs
+from modules.reader import get_full_chapter_text, find_matching_verses
 from modules.greek import display_greek_results
 from modules.commentary import display_commentary_results
 from modules.summaries import display_summaries, setup_llm
@@ -34,39 +35,34 @@ def main():
         summarize = st.checkbox("Summarize", value=False)
         count = st.slider("Number of Bible Results", min_value=1, max_value=8, value=4, step=1)
 
-    # Display Search Input
     search_query = st.text_input(SEARCH_LABEL, value=st.session_state.get('search_query', DEFAULT_SEARCH_QUERY))
     st.session_state.search_query = search_query
 
-    # Perform search if query exists
+    search_results = None
+    commentary_results = None
+
     if search_query:
         with st.spinner("Searching..."):
             search_results, commentary_results = perform_search(search_query, ot_checkbox, nt_checkbox, count)
 
-        # Update current book and chapter based on the first search result
         if search_results:
             first_result = search_results[0]
             st.session_state.current_book = first_result[0].metadata['book']
             st.session_state.current_chapter = first_result[0].metadata['chapter']
 
-    # Display Reader Mode (Book/Chapter selectors)
     reader_mode_navigation()
 
-    # Create two main columns: one for chapter text, one for results
     col1, col2 = st.columns([1, 1])
 
     with col1:
-        display_chapter_text()
+        display_chapter_text(search_results)
 
     with col2:
-        # Display search results only if a search was performed
         if search_query:
-            # Display Summary UI if applicable
             if summarize:
                 llm = setup_llm()
                 display_summaries(search_query, search_results, commentary_results)
 
-            # Display search results
             display_results(search_results, commentary_results, st.session_state.show_greek)
 
 def reader_mode_navigation():
@@ -93,45 +89,60 @@ def reader_mode_navigation():
     with col2:
         st.session_state.current_chapter = st.number_input("Chapter", min_value=1, max_value=max_chapters, value=st.session_state.current_chapter, key="chapter_select")
 
-def display_chapter_text():
+
+def display_chapter_text(search_results):
     if 'current_book' in st.session_state and 'current_chapter' in st.session_state:
         book = st.session_state.current_book
         chapter = st.session_state.current_chapter
-        chapter_text = get_full_chapter_text(book, chapter)
-        #st.markdown(f"## {BIBLE_BOOK_NAMES[book]} {chapter}")
-        paragraphs = split_content_into_paragraphs(chapter_text)
+        verses = get_full_chapter_text(book, chapter)
+
+        matching_verses = []
+        if search_results:
+            first_result_content = search_results[0][0].page_content
+            matching_verses = find_matching_verses(verses, first_result_content)
+
+        highlighted_text = ""
+        for verse_num, verse_text in verses:
+            if verse_num in matching_verses:
+                highlighted_text += f'<span style="background-color: gold;"><sup>{verse_num}</sup> {verse_text}</span> '
+            else:
+                highlighted_text += f'<sup>{verse_num}</sup> {verse_text} '
+
+        if search_results:
+            score = search_results[0][1]
+            highlighted_text = highlighted_text + f"\n\n**Similarity Score: {round(score, 4)}**\n"
+        st.subheader(f"{BIBLE_BOOK_NAMES[book]} {chapter}")
+
+        paragraphs = split_content_into_paragraphs(highlighted_text)
         for paragraph in paragraphs:
-            st.markdown(paragraph)
+            st.markdown(paragraph, unsafe_allow_html=True)
 
 def display_results(bible_results, commentary_results, show_greek):
-    # Determine the number of columns based on enabled options
     num_columns = 1  # Bible results always shown
     if show_greek:
         num_columns += 1
     if st.session_state.enable_commentary:
         num_columns += 1
     
-    # Create columns with equal width
     columns = st.columns([1] * num_columns)
     
-    # Distribute content among columns
     col_index = 0
     
-    # Bible results
     with columns[col_index]:
-        #st.subheader("Search Results")
-        for result in bible_results:
+        # if more than 1 result show subheader
+        if len(bible_results) > 1:
+            st.subheader("Other results")
+        # skip the first result as it is already displayed in the main text
+        for result in bible_results[1:]:
             display_search_result(result)
     col_index += 1
     
-    # Greek results
     if show_greek:
         with columns[col_index]:
             st.subheader("Greek New Testament")
             display_greek_results(bible_results)
         col_index += 1
     
-    # Commentary results
     if st.session_state.enable_commentary:
         with columns[col_index]:
             st.subheader("Church Fathers' Commentary")
