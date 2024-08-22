@@ -121,7 +121,7 @@ def display_results(bible_results, commentary_results, show_greek):
     with columns[col_index]:
         st.subheader("Search Results")
         for result in bible_results:
-            display_bible_result(result)
+            display_search_result(result)
     col_index += 1
     
     # Greek results
@@ -137,7 +137,7 @@ def display_results(bible_results, commentary_results, show_greek):
             st.subheader("Church Fathers' Commentary")
             display_commentary_results(commentary_results)
 
-def display_bible_result(result):
+def display_search_result(result):
     content, metadata, score = result[0].page_content, result[0].metadata, result[1]
     book = BIBLE_BOOK_NAMES.get(metadata['book'], metadata['book'])
     chapter = metadata['chapter']
