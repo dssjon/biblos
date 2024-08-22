@@ -68,7 +68,18 @@ def main():
                 llm = setup_llm()
                 display_summaries(search_query, search_results, commentary_results)
 
-            display_results(search_results, commentary_results, st.session_state.show_greek)
+            display_results(search_results)
+
+    if st.session_state.show_greek or st.session_state.enable_commentary:
+        st.write("---")  # Add a separator
+
+    if st.session_state.show_greek:
+        st.subheader("Greek New Testament")
+        display_greek_results(search_results)
+
+    if st.session_state.enable_commentary:
+        st.subheader("Church Fathers' Commentary")
+        display_commentary_results(commentary_results)
 
     # Reset the clear_search flag
     st.session_state.clear_search = False
@@ -138,36 +149,13 @@ def display_chapter_text(search_results):
         for paragraph in paragraphs:
             st.markdown(paragraph, unsafe_allow_html=True)
 
-def display_results(bible_results, commentary_results, show_greek):
-    num_columns = 1  # Bible results always shown
-    if show_greek:
-        num_columns += 1
-    if st.session_state.enable_commentary:
-        num_columns += 1
-    
-    columns = st.columns([1] * num_columns)
-    
-    col_index = 0
-    
-    with columns[col_index]:
-        # if more than 1 result show subheader
-        if len(bible_results) > 1:
-            st.subheader("Other results")
-        # skip the first result as it is already displayed in the main text
-        for result in bible_results[1:]:
-            display_search_result(result)
-    col_index += 1
-    
-    if show_greek:
-        with columns[col_index]:
-            st.subheader("Greek New Testament")
-            display_greek_results(bible_results)
-        col_index += 1
-    
-    if st.session_state.enable_commentary:
-        with columns[col_index]:
-            st.subheader("Church Fathers' Commentary")
-            display_commentary_results(commentary_results)
+def display_results(bible_results):
+    # if more than 1 result show subheader
+    if len(bible_results) > 1:
+        st.subheader("Other results")
+    # skip the first result as it is already displayed in the main text
+    for result in bible_results[1:]:
+        display_search_result(result)
 
 def display_search_result(result):
     content, metadata, score = result[0].page_content, result[0].metadata, result[1]
