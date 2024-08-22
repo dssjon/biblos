@@ -38,8 +38,18 @@ def main():
     search_col, book_col, chapter_col = st.columns([3, 2, 1])
 
     with search_col:
-        search_query = st.text_input(SEARCH_LABEL, value=st.session_state.get('search_query', DEFAULT_SEARCH_QUERY))
+        search_query = st.text_input(SEARCH_LABEL, value=st.session_state.get('search_query', DEFAULT_SEARCH_QUERY), key="search_input")
         st.session_state.search_query = search_query
+
+    search_results = None
+    commentary_results = None
+
+    if search_query and not st.session_state.get('clear_search', False):
+        with st.spinner("Searching..."):
+            search_results, commentary_results = perform_search(search_query, ot_checkbox, nt_checkbox, count)
+
+        if search_results:
+            update_book_chapter_from_search(search_results[0][0].metadata)
 
     with book_col:
         select_book()
@@ -47,40 +57,35 @@ def main():
     with chapter_col:
         select_chapter()
 
-    search_results = None
-    commentary_results = None
-
-    if search_query:
-        with st.spinner("Searching..."):
-            search_results, commentary_results = perform_search(search_query, ot_checkbox, nt_checkbox, count)
-
-        if search_results:
-            first_result = search_results[0]
-            st.session_state.current_book = first_result[0].metadata['book']
-            st.session_state.current_chapter = first_result[0].metadata['chapter']
-
     col1, col2 = st.columns([1, 1])
 
     with col1:
         display_chapter_text(search_results)
 
     with col2:
-        if search_query:
+        if search_query and not st.session_state.get('clear_search', False):
             if summarize:
                 llm = setup_llm()
                 display_summaries(search_query, search_results, commentary_results)
 
             display_results(search_results, commentary_results, st.session_state.show_greek)
 
+    # Reset the clear_search flag
+    st.session_state.clear_search = False
+
+def update_book_chapter_from_search(metadata):
+    st.session_state.current_book = metadata['book']
+    st.session_state.current_chapter = int(metadata['chapter'])
+
 def select_book():
-    bible_xml = load_bible_xml(BIBLE_XML_FILE)
     if 'current_book' not in st.session_state:
         st.session_state.current_book = list(BIBLE_BOOK_NAMES.keys())[0]
 
     books = list(BIBLE_BOOK_NAMES.keys())
     book_options = [f"{BIBLE_BOOK_NAMES[book]}" for book in books]
-    selected_book_option = st.selectbox("Book", book_options, index=books.index(st.session_state.current_book), key="book_select")
-    selected_book = books[book_options.index(selected_book_option)]
+    current_book_index = books.index(st.session_state.current_book)
+    selected_book_option = st.selectbox("Book", book_options, index=current_book_index, key="book_select", on_change=clear_search_and_update_book)
+    selected_book = [book for book, name in BIBLE_BOOK_NAMES.items() if name == selected_book_option][0]
     
     if selected_book != st.session_state.current_book:
         st.session_state.current_book = selected_book
@@ -92,7 +97,19 @@ def select_chapter():
         st.session_state.current_chapter = 1
 
     max_chapters = max(int(verse.get('c')) for verse in bible_xml.findall(f".//v[@b='{st.session_state.current_book}']"))
-    st.session_state.current_chapter = st.number_input("Chapter", min_value=1, max_value=max_chapters, value=st.session_state.current_chapter, key="chapter_select")
+    selected_chapter = st.number_input("Chapter", min_value=1, max_value=max_chapters, value=st.session_state.current_chapter, key="chapter_select", on_change=clear_search_and_update_chapter)
+    
+    if selected_chapter != st.session_state.current_chapter:
+        st.session_state.current_chapter = selected_chapter
+
+def clear_search_and_update_book():
+    st.session_state.search_query = ""
+    st.session_state.clear_search = True
+    st.session_state.current_chapter = 1
+
+def clear_search_and_update_chapter():
+    st.session_state.search_query = ""
+    st.session_state.clear_search = True
 
 def display_chapter_text(search_results):
     if 'current_book' in st.session_state and 'current_chapter' in st.session_state:
