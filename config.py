@@ -8,7 +8,7 @@ LEXICON_XML_FILE = "./data/dodson.xml"
 # URLs
 HELP_URL = "https://www.github.com/dssjon"
 BUG_REPORT_URL = "https://www.github.com/dssjon"
-ABOUT_URL = "Made with <3 by https://www.github.com/dssjon"
+ABOUT_URL = "Made with <3 by www.github.com/dssjon"
 
 # Model names
 EMBEDDING_MODEL_NAME = "hkunlp/instructor-large"
