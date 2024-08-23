@@ -16,7 +16,7 @@ streamlit_analytics.start_tracking(load_from_json=ANALYTICS_JSON_PATH)
 
 from modules.search import perform_search
 from modules.reader import load_bible_xml, get_full_chapter_text, split_content_into_paragraphs
-from modules.reader import get_full_chapter_text, find_matching_verses
+from modules.reader import find_matching_verses
 from modules.greek import display_greek_results
 from modules.commentary import display_commentary_results
 from modules.summaries import display_summaries, setup_llm
@@ -38,8 +38,12 @@ def main():
     search_col, book_col, chapter_col = st.columns([3, 2, 1])
 
     with search_col:
-        search_query = st.text_input(SEARCH_LABEL, value=st.session_state.get('search_query', DEFAULT_SEARCH_QUERY), key="search_input")
-        st.session_state.search_query = search_query
+        search_query = st.text_input(
+            SEARCH_LABEL,
+            value=st.session_state.get('search_query', DEFAULT_SEARCH_QUERY),
+            key="search_input",
+            on_change=lambda: st.session_state.update({'search_query': st.session_state['search_input'], 'clear_search': False})
+        )
 
     search_results = None
     commentary_results = None
@@ -81,7 +85,7 @@ def main():
         st.subheader("Church Fathers' Commentary")
         display_commentary_results(commentary_results)
 
-    # Reset the clear_search flag
+    # Reset the clear_search flag only after processing
     st.session_state.clear_search = False
 
 def update_book_chapter_from_search(metadata):
@@ -114,12 +118,10 @@ def select_chapter():
         st.session_state.current_chapter = selected_chapter
 
 def clear_search_and_update_book():
-    st.session_state.search_query = ""
     st.session_state.clear_search = True
     st.session_state.current_chapter = 1
 
 def clear_search_and_update_chapter():
-    st.session_state.search_query = ""
     st.session_state.clear_search = True
 
 def display_chapter_text(search_results):
