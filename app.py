@@ -3,6 +3,7 @@ import streamlit_analytics
 from config import *
 
 st.set_page_config(
+    page_title="Bible Semantic Search & Study Tool | Biblos",
     layout="wide",
     menu_items={
         "Get Help": HELP_URL,
@@ -10,7 +11,6 @@ st.set_page_config(
         "About": ABOUT_URL,
     },
     initial_sidebar_state="auto"
-
 )
 
 hide_streamlit_style = """
