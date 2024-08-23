@@ -63,8 +63,18 @@ def main():
     st.markdown(HEADER_LABEL, unsafe_allow_html=True)
 
     with st.sidebar:
+
+            
+        st.subheader("Search Options")
+        ot_checkbox = st.checkbox("Old Testament", value=True)
+        nt_checkbox = st.checkbox("New Testament", value=True)
+        st.session_state.enable_commentary = st.checkbox("Church Fathers", value=False)
+        st.session_state.show_greek = st.checkbox("Greek NT", value=False)
+        summarize = st.checkbox("Summarize", value=True)
+        count = st.slider("Number of Search Results", min_value=1, max_value=8, value=2, step=1)
+
         st.markdown(f"""
-        <div style="background-color: #f0f2f6; padding: 10px 10px 10px 16px; margin: -16px -16px 20px -16px;">
+        <div style="background-color: #f0f2f6; padding: 4px 0px; margin: 0px;">
             <p style="font-size: 0.75rem; color: #6b7280; margin: 0; display: flex; align-items: center;">
                 Made with <span style="color: red; margin: 0 3px;">♥</span> by 
                 <a href="https://www.github.com/dssjon" target="_blank" rel="noopener noreferrer" style="color: #6b7280; text-decoration: none; display: flex; align-items: center; margin-left: 4px;">
@@ -76,15 +86,6 @@ def main():
             </p>
         </div>
         """, unsafe_allow_html=True)
-
-            
-        st.subheader("Search Options")
-        ot_checkbox = st.checkbox("Old Testament", value=True)
-        nt_checkbox = st.checkbox("New Testament", value=True)
-        st.session_state.enable_commentary = st.checkbox("Church Fathers", value=False)
-        st.session_state.show_greek = st.checkbox("Greek NT", value=False)
-        summarize = st.checkbox("Summarize", value=True)
-        count = st.slider("Number of Bible Results", min_value=1, max_value=8, value=2, step=1)
 
     search_col, book_col, chapter_col = st.columns([3, 2, 1])
 
