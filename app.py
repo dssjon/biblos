@@ -9,7 +9,8 @@ st.set_page_config(
         "Report a bug": BUG_REPORT_URL,
         "About": ABOUT_URL,
     },
-    initial_sidebar_state="expanded",
+    initial_sidebar_state="auto"
+
 )
 
 hide_streamlit_style = """
