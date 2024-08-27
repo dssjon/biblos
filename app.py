@@ -62,6 +62,9 @@ DEFAULT_SEARCH_QUERY = "What did Jesus say about...?"
 def main():
     st.markdown(HEADER_LABEL, unsafe_allow_html=True)
 
+    if 'search_count' not in st.session_state:
+        st.session_state.search_count = 2
+
     with st.sidebar:
         st.subheader("Search Options")
         ot_checkbox = st.checkbox("Old Testament", value=True)
@@ -85,15 +88,26 @@ def main():
         </div>
         """, unsafe_allow_html=True)
 
-    search_col, book_col, chapter_col, clear_col = st.columns([3, 2, 1, 1])
+    search_col, clear_col = st.columns([4, 1])
 
     with search_col:
         search_query = st.text_input(
             "What did Jesus say about...?",
             value=st.session_state.get('search_query', ''),
             key="search_input",
-            on_change=lambda: st.session_state.update({'search_query': st.session_state['search_input'], 'clear_search': False})
+            on_change=lambda: st.session_state.update({'search_query': st.session_state['search_input'], 'clear_search': False, 'search_count': 2})
         )
+
+    with clear_col:
+        st.markdown('<div style="display: flex; align-items: center; height: 100%;">', unsafe_allow_html=True)
+        if st.button("Clear Search"):
+            st.session_state.search_query = ''
+            st.session_state.clear_search = True
+            st.session_state.search_count = 2
+            st.rerun()
+        st.markdown('</div>', unsafe_allow_html=True)
+
+    book_col, chapter_col = st.columns([2, 1])
 
     with book_col:
         select_book()
@@ -101,18 +115,12 @@ def main():
     with chapter_col:
         select_chapter()
 
-    with clear_col:
-        if st.button("Clear Search"):
-            st.session_state.search_query = ''
-            st.session_state.clear_search = True
-            st.rerun()
-
     search_results = None
     commentary_results = None
 
     if search_query and not st.session_state.get('clear_search', False):
         with st.spinner("Searching..."):
-            search_results, commentary_results = perform_search(search_query, ot_checkbox, nt_checkbox, count)
+            search_results, commentary_results = perform_search(search_query, ot_checkbox, nt_checkbox, st.session_state.search_count)
 
         if search_results:
             update_book_chapter_from_search(search_results[0][0].metadata)
@@ -124,25 +132,25 @@ def main():
 
     with col2:
         if search_query and not st.session_state.get('clear_search', False):
+            display_results(search_results)
+
+            if len(search_results) == st.session_state.search_count and st.session_state.search_count < 8:
+                if st.button("Show more"):
+                    st.session_state.search_count = min(8, st.session_state.search_count + 2)
+                    st.rerun()
+
             if summarize:
                 llm = setup_llm()
                 display_summaries(search_query, search_results, commentary_results)
 
-            display_results(search_results)
-
-            if len(search_results) <= 2:
-                if st.button("Looking for more?"):
-                    st.session_state.count = 8
-                    st.rerun()
-
     if st.session_state.show_greek or st.session_state.enable_commentary:
-        st.write("---")  # Add a separator
+        st.write("---") 
 
-    if st.session_state.show_greek:
+    if st.session_state.show_greek and search_results:
         st.subheader("Greek New Testament")
         display_greek_results(search_results)
 
-    if st.session_state.enable_commentary:
+    if st.session_state.enable_commentary and commentary_results:
         st.subheader("Church Fathers' Commentary")
         display_commentary_results(commentary_results)
 

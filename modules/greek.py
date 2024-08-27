@@ -63,6 +63,10 @@ def search_lexicon(greek_word):
     return None
 
 def display_greek_results(results):
+    if not results:
+        st.write("No search results to display Greek text for.")
+        return
+    
     for r in results:
         book_abbr = r[0].metadata['book']
         book = BIBLE_BOOK_NAMES.get(book_abbr, book_abbr)
