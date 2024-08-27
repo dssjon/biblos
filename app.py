@@ -2,6 +2,7 @@ import streamlit as st
 import streamlit_analytics
 from config import *
 
+
 st.set_page_config(
     page_title="Bible Semantic Search & Study Tool | Biblos",
     layout="wide",
@@ -51,20 +52,17 @@ st.markdown("""
 streamlit_analytics.start_tracking(load_from_json=ANALYTICS_JSON_PATH)
 
 from modules.search import perform_search
-from modules.reader import load_bible_xml, get_full_chapter_text, split_content_into_paragraphs
-from modules.reader import find_matching_verses
+from modules.reader import load_bible_xml, get_full_chapter_text, split_content_into_paragraphs, find_matching_verses
 from modules.greek import display_greek_results
 from modules.commentary import display_commentary_results
 from modules.summaries import display_summaries, setup_llm
 
-DEFAULT_SEARCH_QUERY = "What did Jesus say about eternal life?"
+DEFAULT_SEARCH_QUERY = "What did Jesus say about...?"
 
 def main():
     st.markdown(HEADER_LABEL, unsafe_allow_html=True)
 
     with st.sidebar:
-
-            
         st.subheader("Search Options")
         ot_checkbox = st.checkbox("Old Testament", value=True)
         nt_checkbox = st.checkbox("New Testament", value=True)
@@ -87,15 +85,27 @@ def main():
         </div>
         """, unsafe_allow_html=True)
 
-    search_col, book_col, chapter_col = st.columns([3, 2, 1])
+    search_col, book_col, chapter_col, clear_col = st.columns([3, 2, 1, 1])
 
     with search_col:
         search_query = st.text_input(
-            SEARCH_LABEL,
-            value=st.session_state.get('search_query', DEFAULT_SEARCH_QUERY),
+            "What did Jesus say about...?",
+            value=st.session_state.get('search_query', ''),
             key="search_input",
             on_change=lambda: st.session_state.update({'search_query': st.session_state['search_input'], 'clear_search': False})
         )
+
+    with book_col:
+        select_book()
+    
+    with chapter_col:
+        select_chapter()
+
+    with clear_col:
+        if st.button("Clear Search"):
+            st.session_state.search_query = ''
+            st.session_state.clear_search = True
+            st.rerun()
 
     search_results = None
     commentary_results = None
@@ -106,12 +116,6 @@ def main():
 
         if search_results:
             update_book_chapter_from_search(search_results[0][0].metadata)
-
-    with book_col:
-        select_book()
-    
-    with chapter_col:
-        select_chapter()
 
     col1, col2 = st.columns([1, 1])
 
@@ -125,6 +129,11 @@ def main():
                 display_summaries(search_query, search_results, commentary_results)
 
             display_results(search_results)
+
+            if len(search_results) <= 2:
+                if st.button("Looking for more?"):
+                    st.session_state.count = 8
+                    st.rerun()
 
     if st.session_state.show_greek or st.session_state.enable_commentary:
         st.write("---")  # Add a separator
@@ -204,10 +213,8 @@ def display_chapter_text(search_results):
             st.markdown(paragraph, unsafe_allow_html=True)
 
 def display_results(bible_results):
-    # if more than 1 result show subheader
     if len(bible_results) > 1:
         st.subheader("Other results")
-    # skip the first result as it is already displayed in the main text
     for result in bible_results[1:]:
         display_search_result(result)
 

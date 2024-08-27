@@ -1,18 +1,14 @@
 # reader.py
-
 import streamlit as st
 import xml.etree.ElementTree as ET
 from config import BIBLE_BOOK_NAMES, BIBLE_XML_FILE
 import re
 
 def preprocess_text(text):
-    # Remove verse numbers and normalize whitespace
     text = re.sub(r'^\d+\s|\s\d+\s', ' ', text)
     text = re.sub(r'\s+', ' ', text).strip()
-    # Convert to lowercase and remove punctuation
     text = re.sub(r'[^\w\s]', '', text.lower())
     return text
-
 
 @st.cache_resource
 def load_bible_xml(input_file):
@@ -32,10 +28,9 @@ def get_full_chapter_text(book_abbr, chapter):
     return verses
 
 def find_matching_verses(verses, search_content):
-    search_content = ' '.join(search_content.split())  # Normalize whitespace
+    search_content = ' '.join(search_content.split())
     matching_verses = []
     for verse_num, verse_text in verses:
-        # Remove verse numbers from the verse text
         clean_verse_text = re.sub(r'^\d+\s', '', verse_text)
         if clean_verse_text.strip() in search_content:
             matching_verses.append(verse_num)

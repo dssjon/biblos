@@ -56,23 +56,6 @@ def perform_commentary_search(commentary_db, search_query):
             print(f"Author search generated an exception for {author}: {exc}")
     return search_results
 
-
-def perform_search(search_query, ot_checkbox, nt_checkbox, count):
-    bible_db = setup_db(DB_DIR, DB_QUERY)
-    commentary_db = setup_db(COMMENTARY_DB_DIR, COMMENTARY_DB_QUERY)
-
-    bible_search_results = bible_db.similarity_search_with_relevance_scores(
-        search_query,
-        k=count,
-        filter=get_selected_bible_filters(ot_checkbox, nt_checkbox),
-    )
-
-    commentary_results = []
-    if st.session_state.enable_commentary:
-        commentary_results = perform_commentary_search(commentary_db, search_query)
-
-    return bible_search_results, commentary_results
-
 def format_bible_results(bible_search_results):
     return [
         {
