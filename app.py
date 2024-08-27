@@ -33,9 +33,8 @@ hide_streamlit_style = """
     div.st-emotion-cache-16txtl3.eczjsme4 {
         padding-top: 2rem !important;
     }
-    
-    </style>
 
+    </style>
 """
 
 st.markdown(hide_streamlit_style, unsafe_allow_html=True)
@@ -57,22 +56,28 @@ from modules.greek import display_greek_results
 from modules.commentary import display_commentary_results
 from modules.summaries import display_summaries, setup_llm
 
-DEFAULT_SEARCH_QUERY = "What did Jesus say about...?"
-
 def main():
     st.markdown(HEADER_LABEL, unsafe_allow_html=True)
 
     if 'search_count' not in st.session_state:
         st.session_state.search_count = 2
+    if 'current_book' not in st.session_state:
+        st.session_state.current_book = list(BIBLE_BOOK_NAMES.keys())[0]
+    if 'current_chapter' not in st.session_state:
+        st.session_state.current_chapter = 1
+    if 'search_results' not in st.session_state:
+        st.session_state.search_results = None
+    if 'commentary_results' not in st.session_state:
+        st.session_state.commentary_results = None
 
     with st.sidebar:
         st.subheader("Search Options")
-        ot_checkbox = st.checkbox("Old Testament", value=True)
-        nt_checkbox = st.checkbox("New Testament", value=True)
+        st.session_state.ot_checkbox = st.checkbox("Old Testament", value=True)
+        st.session_state.nt_checkbox = st.checkbox("New Testament", value=True)
         st.session_state.enable_commentary = st.checkbox("Church Fathers", value=False)
         st.session_state.show_greek = st.checkbox("Greek NT", value=False)
-        summarize = st.checkbox("Summarize", value=True)
-        count = st.slider("Number of Search Results", min_value=1, max_value=8, value=2, step=1)
+        st.session_state.summarize = st.checkbox("Summarize", value=True)
+        st.session_state.search_count = st.slider("Number of Search Results", min_value=1, max_value=8, value=2, step=1)
 
         st.markdown(f"""
         <div style="background-color: #f0f2f6; padding: 4px 0px; margin: 0px;">
@@ -95,103 +100,111 @@ def main():
             "What did Jesus say about...?",
             value=st.session_state.get('search_query', ''),
             key="search_input",
-            on_change=lambda: st.session_state.update({'search_query': st.session_state['search_input'], 'clear_search': False, 'search_count': 2})
+            on_change=handle_search_input_change
         )
 
     with clear_col:
-        st.markdown('<div style="display: flex; align-items: center; height: 100%;">', unsafe_allow_html=True)
         if st.button("Clear Search"):
-            st.session_state.search_query = ''
-            st.session_state.clear_search = True
-            st.session_state.search_count = 2
-            st.rerun()
-        st.markdown('</div>', unsafe_allow_html=True)
+            clear_search()
+
+    if search_query and not st.session_state.get('clear_search', False):
+        with st.spinner("Searching..."):
+            st.session_state.search_results, st.session_state.commentary_results = perform_search(
+                search_query, 
+                st.session_state.ot_checkbox, 
+                st.session_state.nt_checkbox, 
+                st.session_state.search_count
+            )
+
+        if st.session_state.search_results:
+            update_book_chapter_from_search(st.session_state.search_results[0][0].metadata)
 
     book_col, chapter_col = st.columns([2, 1])
 
     with book_col:
         select_book()
-    
+
     with chapter_col:
         select_chapter()
-
-    search_results = None
-    commentary_results = None
-
-    if search_query and not st.session_state.get('clear_search', False):
-        with st.spinner("Searching..."):
-            search_results, commentary_results = perform_search(search_query, ot_checkbox, nt_checkbox, st.session_state.search_count)
-
-        if search_results:
-            update_book_chapter_from_search(search_results[0][0].metadata)
 
     col1, col2 = st.columns([1, 1])
 
     with col1:
-        display_chapter_text(search_results)
+        display_chapter_text(st.session_state.search_results)
 
     with col2:
         if search_query and not st.session_state.get('clear_search', False):
-            display_results(search_results)
+            display_results(st.session_state.search_results)
 
-            if len(search_results) == st.session_state.search_count and st.session_state.search_count < 8:
+            if len(st.session_state.search_results) == st.session_state.search_count and st.session_state.search_count < 8:
                 if st.button("Show more"):
                     st.session_state.search_count = min(8, st.session_state.search_count + 2)
                     st.rerun()
 
-            if summarize:
+            if st.session_state.summarize:
                 llm = setup_llm()
-                display_summaries(search_query, search_results, commentary_results)
+                display_summaries(search_query, st.session_state.search_results, st.session_state.commentary_results)
 
     if st.session_state.show_greek or st.session_state.enable_commentary:
         st.write("---") 
 
-    if st.session_state.show_greek and search_results:
+    if st.session_state.show_greek and st.session_state.search_results:
         st.subheader("Greek New Testament")
-        display_greek_results(search_results)
+        display_greek_results(st.session_state.search_results)
 
-    if st.session_state.enable_commentary and commentary_results:
+    if st.session_state.enable_commentary and st.session_state.commentary_results:
         st.subheader("Church Fathers' Commentary")
-        display_commentary_results(commentary_results)
+        display_commentary_results(st.session_state.commentary_results)
 
     # Reset the clear_search flag only after processing
     st.session_state.clear_search = False
+
+def handle_search_input_change():
+    st.session_state.search_query = st.session_state.search_input
+    st.session_state.clear_search = False
+    st.session_state.search_count = 2
+    # Clear previous search results
+    st.session_state.search_results = None
+    st.session_state.commentary_results = None
+
+def clear_search():
+    st.session_state.search_query = ''
+    st.session_state.clear_search = True
+    st.session_state.search_count = 2
+    st.session_state.search_results = None
+    st.session_state.commentary_results = None
+    st.rerun()
 
 def update_book_chapter_from_search(metadata):
     st.session_state.current_book = metadata['book']
     st.session_state.current_chapter = int(metadata['chapter'])
 
 def select_book():
-    if 'current_book' not in st.session_state:
-        st.session_state.current_book = list(BIBLE_BOOK_NAMES.keys())[0]
-
     books = list(BIBLE_BOOK_NAMES.keys())
     book_options = [f"{BIBLE_BOOK_NAMES[book]}" for book in books]
     current_book_index = books.index(st.session_state.current_book)
-    selected_book_option = st.selectbox("Book", book_options, index=current_book_index, key="book_select", on_change=clear_search_and_update_book)
-    selected_book = [book for book, name in BIBLE_BOOK_NAMES.items() if name == selected_book_option][0]
-    
+    selected_book_option = st.selectbox("Book", book_options, index=current_book_index, key="book_select", on_change=handle_book_change)
+
+def handle_book_change():
+    selected_book = [book for book, name in BIBLE_BOOK_NAMES.items() if name == st.session_state.book_select][0]
     if selected_book != st.session_state.current_book:
         st.session_state.current_book = selected_book
         st.session_state.current_chapter = 1
+        st.session_state.clear_search = True
+        st.session_state.search_results = None
+        st.session_state.commentary_results = None
 
 def select_chapter():
     bible_xml = load_bible_xml(BIBLE_XML_FILE)
-    if 'current_chapter' not in st.session_state:
-        st.session_state.current_chapter = 1
-
     max_chapters = max(int(verse.get('c')) for verse in bible_xml.findall(f".//v[@b='{st.session_state.current_book}']"))
-    selected_chapter = st.number_input("Chapter", min_value=1, max_value=max_chapters, value=st.session_state.current_chapter, key="chapter_select", on_change=clear_search_and_update_chapter)
-    
-    if selected_chapter != st.session_state.current_chapter:
-        st.session_state.current_chapter = selected_chapter
+    selected_chapter = st.number_input("Chapter", min_value=1, max_value=max_chapters, value=st.session_state.current_chapter, key="chapter_select", on_change=handle_chapter_change)
 
-def clear_search_and_update_book():
-    st.session_state.clear_search = True
-    st.session_state.current_chapter = 1
-
-def clear_search_and_update_chapter():
-    st.session_state.clear_search = True
+def handle_chapter_change():
+    if st.session_state.chapter_select != st.session_state.current_chapter:
+        st.session_state.current_chapter = st.session_state.chapter_select
+        st.session_state.clear_search = True
+        st.session_state.search_results = None
+        st.session_state.commentary_results = None
 
 def display_chapter_text(search_results):
     if 'current_book' in st.session_state and 'current_chapter' in st.session_state:
