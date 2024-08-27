@@ -92,9 +92,10 @@ def main():
 
     with search_col:
         search_query = st.text_input(
-            "What did Jesus say about...?",
+            "Search",
             value=st.session_state.get('search_query', ''),
             key="search_input",
+            placeholder="What did Jesus say about...?",
             on_change=lambda: st.session_state.update({'search_query': st.session_state['search_input'], 'clear_search': False, 'search_count': 2})
         )
 
