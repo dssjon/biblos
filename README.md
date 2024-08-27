@@ -1,4 +1,4 @@
-# Biblos - Advanced Bible Exploration with Vector Search and Multi-Layered Analysis
+# Biblos - Semantic Bible Search and Multi-Layered Analysis
 
 Biblos is a sophisticated tool for semantic search and in-depth analysis of Biblical texts, leveraging state-of-the-art NLP techniques and historical commentaries:
 
