@@ -69,7 +69,7 @@ def main():
         nt_checkbox = st.checkbox("New Testament", value=True)
         st.session_state.enable_commentary = st.checkbox("Church Fathers", value=False)
         st.session_state.show_greek = st.checkbox("Greek NT", value=False)
-        summarize = st.checkbox("Summarize", value=True)
+        summarize = st.checkbox("Insights", value=True)
 
         st.markdown(f"""
         <div style="background-color: #f0f2f6; padding: 4px 0px; margin: 0px;">
@@ -115,53 +115,57 @@ def main():
         if search_results:
             update_book_chapter_from_search(search_results[0][0].metadata)
 
-    # Determine which tabs to display
-    tabs_to_display = ["Bible Text"]
+    # Determine which tabs to display with alternative names
+    tabs_to_display = ["📖 Bible Text"]
     if search_results and len(search_results) > 1:
-        tabs_to_display.append("Other Results")
+        tabs_to_display.append("🔍 More Results")
     if st.session_state.show_greek and search_results:
-        tabs_to_display.append("Greek NT")
+        tabs_to_display.append("🇬🇷 Greek NT")
     if st.session_state.enable_commentary and commentary_results:
-        tabs_to_display.append("Church Fathers")
+        tabs_to_display.append("📜 Church Fathers")
     if summarize and search_results:
-        tabs_to_display.append("Summaries")
+        tabs_to_display.append("📊 Insights")
 
     tabs = st.tabs(tabs_to_display)
 
     for i, tab_name in enumerate(tabs_to_display):
         with tabs[i]:
-            if tab_name == "Bible Text":
+            if tab_name == "📖 Bible Text":
+                display_chapter_text(search_results)
+                st.write("---")
                 book_col, chapter_col = st.columns([2, 1])
                 with book_col:
                     select_book()
                 with chapter_col:
                     select_chapter()
-                display_chapter_text(search_results)
 
-            elif tab_name == "Other Results":
+            elif tab_name == "🔍 More Results":
                 display_results(search_results[1:])
                 if len(search_results) == st.session_state.search_count and st.session_state.search_count < 8:
                     if st.button("Show more"):
                         st.session_state.search_count = min(8, st.session_state.search_count + 2)
                         st.rerun()
 
-            elif tab_name == "Greek NT":
+            elif tab_name == "🇬🇷 Greek NT":
                 display_greek_results(search_results)
 
-            elif tab_name == "Church Fathers":
+            elif tab_name == "📜 Church Fathers":
                 display_commentary_results(commentary_results)
 
-            elif tab_name == "Summaries":
-                with st.spinner("Generating summaries..."):
+            elif tab_name == "📊 Insights":
+                with st.spinner("Generating insights..."):
                     llm = setup_llm()
                     summaries = generate_summaries(search_query, search_results, commentary_results)
                     if 'bible' in summaries:
-                        st.subheader("Bible Summary")
+                        st.subheader("Bible Insights")
                         st.success(summaries['bible'])
                     if 'commentary' in summaries:
-                        st.subheader("Church Fathers' Summary")
+                        st.subheader("Church Fathers' Insights")
                         st.success(summaries['commentary'])
 
+    # show a footer line break to add white space
+    st.write("---")
+    
     # Reset the clear_search flag only after processing
     st.session_state.clear_search = False
 
