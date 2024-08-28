@@ -19,20 +19,18 @@ hide_streamlit_style = """
     .stDeployButton {
         display: none;
     }
-    .css-18e3th9 {  # This targets the main content container
+    .css-18e3th9 {
         padding-top: 0rem;
         padding-bottom: 0rem;
         padding-left: 1rem;
         padding-right: 1rem;
     }
-    .css-1d391kg {  # This targets the sidebar container
+    .css-1d391kg {
         padding-top: 0rem;
     }
-
     div.st-emotion-cache-16txtl3.eczjsme4 {
         padding-top: 2rem !important;
     }
-
     </style>
 """
 
@@ -53,13 +51,13 @@ from modules.search import perform_search
 from modules.reader import load_bible_xml, get_full_chapter_text, split_content_into_paragraphs, find_matching_verses
 from modules.greek import display_greek_results
 from modules.commentary import display_commentary_results
-from modules.summaries import display_summaries, setup_llm
+from modules.summaries import generate_summaries, setup_llm
 
 def main():
     st.markdown(HEADER_LABEL, unsafe_allow_html=True)
 
     if 'search_count' not in st.session_state:
-        st.session_state.search_count = 2
+        st.session_state.search_count = 4
     if 'current_book' not in st.session_state:
         st.session_state.current_book = list(BIBLE_BOOK_NAMES.keys())[0]
     if 'current_chapter' not in st.session_state:
@@ -72,7 +70,6 @@ def main():
         st.session_state.enable_commentary = st.checkbox("Church Fathers", value=False)
         st.session_state.show_greek = st.checkbox("Greek NT", value=False)
         summarize = st.checkbox("Summarize", value=True)
-        count = st.slider("Number of Search Results", min_value=1, max_value=8, value=2, step=1)
 
         st.markdown(f"""
         <div style="background-color: #f0f2f6; padding: 4px 0px; margin: 0px;">
@@ -96,7 +93,7 @@ def main():
             value=st.session_state.get('search_query', ''),
             key="search_input",
             placeholder="What did Jesus say about...?",
-            on_change=lambda: st.session_state.update({'search_query': st.session_state['search_input'], 'clear_search': False, 'search_count': 2})
+            on_change=lambda: st.session_state.update({'search_query': st.session_state['search_input'], 'clear_search': False, 'search_count': 4})
         )
 
     with clear_col:
@@ -104,7 +101,7 @@ def main():
         if st.button("Clear Search"):
             st.session_state.search_query = ''
             st.session_state.clear_search = True
-            st.session_state.search_count = 2
+            st.session_state.search_count = 4
             st.rerun()
         st.markdown('</div>', unsafe_allow_html=True)
 
@@ -118,42 +115,52 @@ def main():
         if search_results:
             update_book_chapter_from_search(search_results[0][0].metadata)
 
-    book_col, chapter_col = st.columns([2, 1])
-
-    with book_col:
-        select_book()
-
-    with chapter_col:
-        select_chapter()
-
-    col1, col2 = st.columns([1, 1])
-
-    with col1:
-        display_chapter_text(search_results)
-
-    with col2:
-        if search_query and not st.session_state.get('clear_search', False):
-            display_results(search_results)
-
-            if len(search_results) == st.session_state.search_count and st.session_state.search_count < 8:
-                if st.button("Show more"):
-                    st.session_state.search_count = min(8, st.session_state.search_count + 2)
-                    st.rerun()
-
-            if summarize:
-                llm = setup_llm()
-                display_summaries(search_query, search_results, commentary_results)
-
-    if st.session_state.show_greek or st.session_state.enable_commentary:
-        st.write("---") 
-
+    # Determine which tabs to display
+    tabs_to_display = ["Bible Text"]
+    if search_results and len(search_results) > 1:
+        tabs_to_display.append("Other Results")
     if st.session_state.show_greek and search_results:
-        st.subheader("Greek New Testament")
-        display_greek_results(search_results)
-
+        tabs_to_display.append("Greek NT")
     if st.session_state.enable_commentary and commentary_results:
-        st.subheader("Church Fathers' Commentary")
-        display_commentary_results(commentary_results)
+        tabs_to_display.append("Church Fathers")
+    if summarize and search_results:
+        tabs_to_display.append("Summaries")
+
+    tabs = st.tabs(tabs_to_display)
+
+    for i, tab_name in enumerate(tabs_to_display):
+        with tabs[i]:
+            if tab_name == "Bible Text":
+                book_col, chapter_col = st.columns([2, 1])
+                with book_col:
+                    select_book()
+                with chapter_col:
+                    select_chapter()
+                display_chapter_text(search_results)
+
+            elif tab_name == "Other Results":
+                display_results(search_results[1:])
+                if len(search_results) == st.session_state.search_count and st.session_state.search_count < 8:
+                    if st.button("Show more"):
+                        st.session_state.search_count = min(8, st.session_state.search_count + 2)
+                        st.rerun()
+
+            elif tab_name == "Greek NT":
+                display_greek_results(search_results)
+
+            elif tab_name == "Church Fathers":
+                display_commentary_results(commentary_results)
+
+            elif tab_name == "Summaries":
+                with st.spinner("Generating summaries..."):
+                    llm = setup_llm()
+                    summaries = generate_summaries(search_query, search_results, commentary_results)
+                    if 'bible' in summaries:
+                        st.subheader("Bible Summary")
+                        st.success(summaries['bible'])
+                    if 'commentary' in summaries:
+                        st.subheader("Church Fathers' Summary")
+                        st.success(summaries['commentary'])
 
     # Reset the clear_search flag only after processing
     st.session_state.clear_search = False
@@ -213,9 +220,7 @@ def display_chapter_text(search_results):
             st.markdown(paragraph, unsafe_allow_html=True)
 
 def display_results(bible_results):
-    if len(bible_results) > 1:
-        st.subheader("Other results")
-    for result in bible_results[1:]:
+    for result in bible_results:
         display_search_result(result)
 
 def display_search_result(result):
