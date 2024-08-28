@@ -116,11 +116,11 @@ def main():
             update_book_chapter_from_search(search_results[0][0].metadata)
 
     # Determine which tabs to display with alternative names
-    tabs_to_display = ["📖 Bible Text"]
+    tabs_to_display = [f"📖 **{BIBLE_BOOK_NAMES[st.session_state.current_book]} {st.session_state.current_chapter}** "]
     if search_results and len(search_results) > 1:
         tabs_to_display.append("🔍 More Results")
     if st.session_state.show_greek and search_results:
-        tabs_to_display.append("🇬🇷 Greek NT")
+        tabs_to_display.append("☧ Greek NT")
     if st.session_state.enable_commentary and commentary_results:
         tabs_to_display.append("📜 Church Fathers")
     if summarize and search_results:
@@ -130,9 +130,10 @@ def main():
 
     for i, tab_name in enumerate(tabs_to_display):
         with tabs[i]:
-            if tab_name == "📖 Bible Text":
+            #if tab_name == "📖 Bible Text":
+            #instead of name check first tab
+            if i == 0:
                 display_chapter_text(search_results)
-                st.write("---")
                 book_col, chapter_col = st.columns([2, 1])
                 with book_col:
                     select_book()
@@ -146,7 +147,7 @@ def main():
                         st.session_state.search_count = min(8, st.session_state.search_count + 2)
                         st.rerun()
 
-            elif tab_name == "🇬🇷 Greek NT":
+            elif tab_name == "☧ Greek NT":
                 display_greek_results(search_results)
 
             elif tab_name == "📜 Church Fathers":
@@ -157,7 +158,7 @@ def main():
                     llm = setup_llm()
                     summaries = generate_summaries(search_query, search_results, commentary_results)
                     if 'bible' in summaries:
-                        st.subheader("Bible Insights")
+                        st.subheader("Insights")
                         st.success(summaries['bible'])
                     if 'commentary' in summaries:
                         st.subheader("Church Fathers' Insights")
@@ -217,7 +218,7 @@ def display_chapter_text(search_results):
         if search_results:
             score = search_results[0][1]
             highlighted_text = highlighted_text + f"\n\n**Similarity Score:** {round(score, 4)}\n"
-        st.subheader(f"{BIBLE_BOOK_NAMES[book]} {chapter}")
+        #st.subheader(f"{BIBLE_BOOK_NAMES[book]} {chapter}")
 
         paragraphs = split_content_into_paragraphs(highlighted_text)
         for paragraph in paragraphs:
